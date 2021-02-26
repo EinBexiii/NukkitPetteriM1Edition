@@ -508,7 +508,7 @@ public class Server {
         }
 
         if (this.getPropertyBoolean("thread-watchdog", true)) {
-            this.watchdog = new Watchdog(this, this.getPropertyInt("thread-watchdog-tick", 50000));
+            this.watchdog = new Watchdog(this, this.getPropertyInt("thread-watchdog-tick", 60000));
             this.watchdog.start();
         }
 
@@ -789,10 +789,6 @@ public class Server {
             this.getLogger().debug("Disabling all plugins...");
             this.disablePlugins();
 
-            if (this.watchdog != null) {
-                this.watchdog.running = false; // TODO: fix
-            }
-
             this.getLogger().debug("Unloading all levels...");
             for (Level level : this.levelArray) {
                 this.unloadLevel(level, true);
@@ -1003,7 +999,7 @@ public class Server {
         } else if (player.protocol >= ProtocolInfo.v1_16_0) {
             player.dataPacket(CraftingManager.packet407);
         } else if (player.protocol > ProtocolInfo.v1_12_0) {
-            player.dataPacket(CraftingManager.packet338);
+            player.dataPacket(CraftingManager.packet388);
         } else if (player.protocol == ProtocolInfo.v1_12_0) {
             player.dataPacket(CraftingManager.packet361);
         } else if (player.protocol == ProtocolInfo.v1_11_0) {
@@ -1980,12 +1976,12 @@ public class Server {
         this.properties.save();
     }
 
-    public String getPropertyString(String variable) {
-        return this.getPropertyString(variable, null);
+    public String getPropertyString(String key) {
+        return this.getPropertyString(key, null);
     }
 
-    public String getPropertyString(String variable, String defaultValue) {
-        return this.properties.exists(variable) ? (String) this.properties.get(variable) : defaultValue;
+    public String getPropertyString(String key, String defaultValue) {
+        return this.properties.exists(key) ? this.properties.get(key).toString() : defaultValue;
     }
 
     public int getPropertyInt(String variable) {
@@ -2458,7 +2454,7 @@ public class Server {
             put("ticks-per-entity-spawns", 200);
             put("ticks-per-entity-despawns", 12000);
             put("thread-watchdog", true);
-            put("thread-watchdog-tick", 50000);
+            put("thread-watchdog-tick", 60000);
             put("nether", true);
             put("end", false);
             put("suomicraft-mode", false);
