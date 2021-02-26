@@ -2,29 +2,26 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <name>Nukkit PetteriM1 Edition</name>
-    <groupId>cn.nukkit</groupId>
-    <artifactId>Nukkit</artifactId>
-    <version>PM1E</version>
+    <groupId>net.rushnation</groupId>
+    <artifactId>Nukkit-RNE</artifactId>
+    <version>RN-1.0</version>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <junit.platform.version>1.0.0-M4</junit.platform.version>
-        <log4j2.version>2.13.3</log4j2.version>
+        <log4j2.version>2.14.0</log4j2.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jline.version>3.12.1</jline.version>
         <netty.version>[4.1.47.Final,4.1.999.Final]</netty.version>
     </properties>
-    
+
     <distributionManagement>
         <repository>
-            <id>gdrive</id>
-            <name>Google Drive</name>
-            <url>gdrive:/Public/build/Nukkit_PetteriM1_Edition</url>
+            <id>rushnation-repo</id>
+            <url>http://repo.rushnation.net:8081/repository/maven-releases/</url>
         </repository>
     </distributionManagement>
-
     <repositories>
         <repository>
             <id>opencollab-repo-release</id>
@@ -254,7 +251,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
+                <version>3.2.1</version>
                 <dependencies>
                     <dependency>
                         <groupId>com.github.edwgiz</groupId>
@@ -283,6 +280,13 @@
                         <transformer
                                 implementation="com.github.edwgiz.mavenShadePlugin.log4j2CacheTransformer.PluginsCacheFileTransformer">
                         </transformer>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                            <mainClass>cn.nukkit.Nukkit</mainClass>
+                            <manifestEntries>
+                                <Multi-Release>true</Multi-Release>
+                            </manifestEntries>
+                        </transformer>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                     </transformers>
                 </configuration>
             </plugin>

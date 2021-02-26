@@ -308,7 +308,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     protected float absorption = 0;
 
-    protected float ySize = 0;
+    public float ySize = 0;
     public boolean keepMovement = false;
 
     public float fallDistance = 0;
@@ -1136,6 +1136,7 @@ public abstract class Entity extends Location implements Metadatable {
                     p.getInventory().clear(p.getInventory().getHeldItemIndex());
                     totem = true;
                 }
+
                 if (totem) {
                     this.getLevel().addLevelEvent(this, LevelEventPacket.EVENT_SOUND_TOTEM);
                     this.getLevel().addParticleEffect(this, ParticleEffect.TOTEM);
@@ -1156,8 +1157,15 @@ public abstract class Entity extends Location implements Metadatable {
                     source.setCancelled(true);
                     return false;
                 }
+
+                newHealth = health;
             }
         }
+
+        if(this instanceof Player && !(((Player) this).isCanDamage())) {
+            return true;
+        }
+
         setHealth(newHealth);
         return true;
     }

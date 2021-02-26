@@ -71,6 +71,7 @@ import cn.nukkit.potion.Effect;
 import cn.nukkit.potion.Potion;
 import cn.nukkit.resourcepacks.ResourcePack;
 import cn.nukkit.scheduler.AsyncTask;
+import cn.nukkit.scoreboard.Scoreboard;
 import cn.nukkit.utils.*;
 import co.aikar.timings.Timing;
 import co.aikar.timings.Timings;
@@ -84,6 +85,8 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.math3.util.FastMath;
 
@@ -269,6 +272,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     private boolean foodEnabled = true;
     private int failedTransactions;
     public int ticksSinceLastRest;
+
+    @Getter
+    @Setter
+    protected boolean canDamage = true;
 
     private static final List<Byte> beforeLoginAvailablePackets = Arrays.asList(ProtocolInfo.BATCH_PACKET, ProtocolInfo.LOGIN_PACKET, ProtocolInfo.REQUEST_CHUNK_RADIUS_PACKET, ProtocolInfo.SET_LOCAL_PLAYER_AS_INITIALIZED_PACKET, ProtocolInfo.RESOURCE_PACK_CHUNK_REQUEST_PACKET, ProtocolInfo.RESOURCE_PACK_CLIENT_RESPONSE_PACKET, ProtocolInfo.CLIENT_CACHE_STATUS_PACKET, ProtocolInfo.PACKET_VIOLATION_WARNING_PACKET);
 
@@ -3274,10 +3281,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     this.level.addChunkPacket(this.getChunkX(), this.getChunkZ(), packet);
                     break;
                 case ProtocolInfo.INVENTORY_TRANSACTION_PACKET:
-                    if (this.isSpectator()) {
-                        this.sendAllInventories();
-                        break;
-                    }
 
                     InventoryTransactionPacket transactionPacket = (InventoryTransactionPacket) packet;
 
@@ -4494,7 +4497,15 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             level++;
             most = calculateRequireExperience(level);
         }
-        this.setExperience(added, level);
+
+        PlayerExperienceChangeEvent event = new PlayerExperienceChangeEvent(this, this.getExperienceLevel(), this.getExperience(), added, level);
+        this.server.getPluginManager().callEvent(event);
+
+        if(event.isCancelled()) {
+            return;
+        }
+
+        this.setExperience(event.getNewProgress(), event.getNewLevel());
     }
 
     public static int calculateRequireExperience(int level) {
@@ -5688,5 +5699,39 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     @Override
     public String toString() {
         return "Player(name='" + getName() + "', location=" + super.toString() + ')';
+    }
+
+    public void playSound(Sound sound) {
+        PlaySoundPacket packet = new PlaySoundPacket();
+
+        packet.name = sound.getSound();
+        packet.x = new Double(this.getLocation().getX()).intValue();
+        packet.y = new Double(this.getLocation().getY()).intValue();
+        packet.z = new Double(this.getLocation().getZ()).intValue();
+        packet.volume = 1;
+        packet.pitch = 1;
+
+        this.dataPacket(packet);
+    }
+
+    public void playSound(Sound sound, float volume, float pitch) {
+        PlaySoundPacket packet = new PlaySoundPacket();
+
+        packet.name = sound.getSound();
+        packet.x = new Double(this.getLocation().getX()).intValue();
+        packet.y = new Double(this.getLocation().getY()).intValue();
+        packet.z = new Double(this.getLocation().getZ()).intValue();
+        packet.volume = volume;
+        packet.pitch = pitch;
+
+        this.dataPacket(packet);
+    }
+
+    public void setScoreboard(Scoreboard scoreboard) {
+        scoreboard.showFor(this);
+    }
+
+    public void removeScoreboard(Scoreboard scoreboard) {
+        scoreboard.hideFor(this);
     }
 }

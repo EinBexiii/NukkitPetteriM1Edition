@@ -5,12 +5,14 @@ import cn.nukkit.Server;
 import cn.nukkit.block.Block;
 import cn.nukkit.entity.data.ShortEntityData;
 import cn.nukkit.entity.mob.EntityDrowned;
+import cn.nukkit.entity.projectile.EntityArrow;
 import cn.nukkit.entity.projectile.EntityProjectile;
 import cn.nukkit.entity.weather.EntityWeather;
 import cn.nukkit.event.entity.*;
 import cn.nukkit.event.entity.EntityDamageEvent.DamageCause;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTurtleShell;
+import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.GameRule;
 import cn.nukkit.level.Sound;
 import cn.nukkit.level.format.FullChunk;
@@ -143,7 +145,27 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
 
                 double deltaX = this.x - damager.x;
                 double deltaZ = this.z - damager.z;
-                this.knockBack(damager, source.getDamage(), deltaX, deltaZ, ((EntityDamageByEntityEvent) source).getKnockBack());
+
+                int i = 0;
+
+                if(damager instanceof Player) {
+                    Player player = (Player) damager;
+
+                    Enchantment[] enchantments = player.getInventory().getItemInHand().getEnchantments();
+
+                    for(Enchantment enchantment: enchantments) {
+                        if(enchantment.id == Enchantment.ID_KNOCKBACK) {
+                            i = enchantment.getLevel();
+                        }
+                    }
+                }
+
+                if(i == 0) {
+                    this.knockBack(damager, source.getDamage(), deltaX, deltaZ, ((EntityDamageByEntityEvent) source).getKnockBack());
+                }else {
+                    this.knockBack(damager, source.getDamage(), deltaX, deltaZ, ((EntityDamageByEntityEvent) source).getKnockBack() + 0.2);
+                }
+
             }
 
             EntityEventPacket pk = new EntityEventPacket();
@@ -207,28 +229,56 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
 
     public void knockBack(Entity attacker, double damage, double x, double z, double base) {
         double f = Math.sqrt(x * x + z * z);
-        if (f <= 0) {
-            return;
+
+        int i = 0;
+
+        if(attacker instanceof EntityArrow) {
+            EntityArrow arrow = (EntityArrow) attacker;
+            i = arrow.namedTag.getInt("KNOCK");
+            base = 0.6;
         }
 
-        f = 1 / f;
 
-        Vector3 motion = new Vector3(this.motionX, this.motionY, this.motionZ);
 
-        motion.x /= 2d;
-        motion.y /= 2d;
-        motion.z /= 2d;
-        motion.x += x * f * base;
-        motion.y += base;
-        motion.z += z * f * base;
+        if(f > 0) {
+            f = 1d /f;
 
-        if (motion.y > base) {
-            motion.y = base;
+            Vector3 motion = new Vector3(this.motionX, this.motionY, this.motionZ);
+            motion.x /= 2d;
+            motion.y /= 2d;
+            motion.z /= 2d;
+            motion.x += x * f * base;
+            motion.y += base;
+            motion.z += z * f * base;
+
+
+            if (motion.y > 0.4000000059604645) {
+                motion.y = 0.4000000059604645;
+            }
+
+            if(attacker instanceof Player) {
+                Player player = (Player) attacker;
+
+                Enchantment[] enchantments = player.getInventory().getItemInHand().getEnchantments();
+
+                for(Enchantment enchantment: enchantments) {
+                    if(enchantment.id == Enchantment.ID_KNOCKBACK) {
+                        i = enchantment.getLevel();
+                    }
+                }
+            }
+
+            if (i > 0) {
+                motion.x += -Math.sin(attacker.getLocation().getYaw() * 3.1415927410125732 / 180) * 1 * 0.2;
+                motion.y += 0.08;
+                motion.z += Math.cos(attacker.getLocation().getYaw() * 3.1415927410125732 / 180) * 1.0 * 0.2;
+            }
+
+            this.resetFallDistance();
+
+
+            this.setMotion(motion);
         }
-
-        this.resetFallDistance();
-
-        this.setMotion(motion);
     }
 
     @Override

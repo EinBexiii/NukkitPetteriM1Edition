@@ -50,25 +50,56 @@ abstract public class ItemArmor extends Item implements ItemDurable {
     @Override
     public boolean onClickAir(Player player, Vector3 directionVector) {
         boolean equip = false;
-        if (this.isHelmet() && player.getInventory().getHelmetFast().isNull()) {
+        boolean alreadyEquipped = false;
+        Item itemBefore = null;
+
+
+        if (this.isHelmet()) {
+            if (!player.getInventory().getHelmet().isNull()) {
+                alreadyEquipped = true;
+                itemBefore = player.getInventory().getHelmet();
+            }
+
             if (player.getInventory().setHelmet(this)) {
                 equip = true;
             }
-        } else if (this.isChestplate() && player.getInventory().getChestplateFast().isNull()) {
+        } else if (this.isChestplate()) {
+            if (!player.getInventory().getChestplate().isNull()) {
+                alreadyEquipped = true;
+                itemBefore = player.getInventory().getChestplate();
+            }
+
             if (player.getInventory().setChestplate(this)) {
                 equip = true;
             }
-        } else if (this.isLeggings() && player.getInventory().getLeggingsFast().isNull()) {
+        } else if (this.isLeggings()) {
+            if (!player.getInventory().getLeggings().isNull()) {
+                alreadyEquipped = true;
+                itemBefore = player.getInventory().getLeggings();
+            }
+
             if (player.getInventory().setLeggings(this)) {
                 equip = true;
             }
-        } else if (this.isBoots() && player.getInventory().getBootsFast().isNull()) {
+        } else if (this.isBoots()) {
+            if (!player.getInventory().getBoots().isNull()) {
+                alreadyEquipped = true;
+                itemBefore = player.getInventory().getBoots();
+            }
+
             if (player.getInventory().setBoots(this)) {
                 equip = true;
             }
         }
+
         if (equip) {
-            player.getInventory().clear(player.getInventory().getHeldItemIndex());
+
+            if (!alreadyEquipped) {
+                player.getInventory().clear(player.getInventory().getHeldItemIndex());
+            } else {
+                player.getInventory().setItem(player.getInventory().getHeldItemIndex(), itemBefore);
+            }
+
             switch (this.getTier()) {
                 case TIER_CHAIN:
                     player.getLevel().addLevelSoundEvent(player, LevelSoundEventPacket.SOUND_ARMOR_EQUIP_CHAIN);
