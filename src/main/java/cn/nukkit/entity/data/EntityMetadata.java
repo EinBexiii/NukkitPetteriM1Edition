@@ -120,12 +120,12 @@ public class EntityMetadata {
         return new HashMap<>(map);
     }
 
-    private EntityMetadata replaceAll(Map<Integer, EntityData> map) {
+    private EntityMetadata replace(Map<Integer, EntityData> map) {
         this.map = map;
         return this;
     }
 
-    public EntityMetadata createClone() {
-        return new EntityMetadata().replaceAll(this.getMap());
+    public EntityMetadata clone() {
+        return new EntityMetadata().replace(this.getMap());
     }
 }

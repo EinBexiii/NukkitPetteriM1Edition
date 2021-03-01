@@ -1019,8 +1019,6 @@ public abstract class Entity extends Location implements Metadatable {
             addEntity.links[i] = new EntityLink(this.id, this.passengers.get(i).id, i == 0 ? EntityLink.TYPE_RIDER : TYPE_PASSENGER, false, false);
         }
 
-        //addEntity.setChannel(Network.CHANNEL_ENTITY_SPAWNING);
-
         return addEntity;
     }
 
@@ -1046,24 +1044,29 @@ public abstract class Entity extends Location implements Metadatable {
         this.sendData(player, null);
     }
 
-    public void sendData(Player player, EntityMetadata data) {
+public void sendData(Player player, EntityMetadata data) {
         SetEntityDataPacket pk = new SetEntityDataPacket();
         pk.eid = this.id;
         if (player.protocol < 274) {
             pk.metadata = data == null ? mvReplace(this.dataProperties) : mvReplace(data);
         } else {
-            pk.metadata = data == null ? this.dataProperties.createClone() : data;
+            pk.metadata = data == null ? this.dataProperties : data;
         }
 
         //player.dataPacket(pk);
         player.batchDataPacket(pk);
     }
 
-    /**
-        Patch EntityMetadata for old game versions
-     */
-    protected EntityMetadata mvReplace(EntityMetadata data) {
-        return data.createClone(); //TODO
+    private EntityMetadata mvReplace(EntityMetadata data) {
+        EntityMetadata updated = new EntityMetadata()
+                .putLong(DATA_FLAGS, data.getLong(DATA_FLAGS))
+                .putShort(DATA_AIR, data.getShort(DATA_AIR))
+                .putShort(43, data.getShort(DATA_MAX_AIR))
+                .putString(DATA_NAMETAG, data.getString(DATA_NAMETAG))
+                .putLong(DATA_LEAD_HOLDER_EID, data.getLong(DATA_LEAD_HOLDER_EID))
+                .putFloat(DATA_SCALE, data.getFloat(DATA_SCALE));
+        // TODO: All other data properties
+        return updated;
     }
 
     public void sendData(Player[] players) {
@@ -1082,22 +1085,22 @@ public abstract class Entity extends Location implements Metadatable {
             if (player.protocol < 274) {
                 pk.metadata = data == null ? mvReplace(this.dataProperties) : mvReplace(data);
             } else {
-                pk.metadata = data == null ? this.dataProperties.createClone() : data;
+                pk.metadata = data == null ? this.dataProperties : data;
             }
             //player.dataPacket(pk/*.clone()*/);
-            player.batchDataPacket(pk.clone());
+            player.batchDataPacket(pk);
         }
         if (this.isPlayer) {
             if (((Player) this).protocol < 274) {
                 pk.metadata = data == null ? mvReplace(this.dataProperties) : mvReplace(data);
             } else {
-                pk.metadata = data == null ? this.dataProperties.createClone() : data;
+                pk.metadata = data == null ? this.dataProperties : data;
             }
             //((Player) this).dataPacket(pk);
             ((Player) this).batchDataPacket(pk);
         }
     }
-
+  
     public void despawnFrom(Player player) {
         if (this.hasSpawned.containsKey(player.getLoaderId())) {
             RemoveEntityPacket pk = new RemoveEntityPacket();
@@ -1469,7 +1472,6 @@ public abstract class Entity extends Location implements Metadatable {
         pk.motionX = (float) motionX;
         pk.motionY = (float) motionY;
         pk.motionZ = (float) motionZ;
-        //pk.setChannel(Network.CHANNEL_MOVEMENT);
         //Server.broadcastPacket(this.hasSpawned.values(), pk);
         for (Player p : this.hasSpawned.values()) {
             p.batchDataPacket(pk);
@@ -2377,7 +2379,7 @@ public abstract class Entity extends Location implements Metadatable {
                 if (((Player) this).protocol < 274) {
                     pk.metadata = d == null ? mvReplace(this.dataProperties) : mvReplace(d);
                 } else {
-                    pk.metadata = d == null ? this.dataProperties.createClone() : d;
+                    pk.metadata = d == null ? this.dataProperties : d;
                 }
                 //((Player) this).dataPacket(pk);
                 ((Player) this).batchDataPacket(pk);
@@ -2444,15 +2446,19 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public void setDataFlag(int propertyId, int id, boolean value) {
+        this.setDataFlag(propertyId, id, value, true);
+    }
+
+    public void setDataFlag(int propertyId, int id, boolean value, boolean send) {
         if (this.getDataFlag(propertyId, id) != value) {
             if (propertyId == EntityHuman.DATA_PLAYER_FLAGS) {
                 byte flags = (byte) this.getDataPropertyByte(propertyId);
                 flags ^= 1 << id;
-                this.setDataProperty(new ByteEntityData(propertyId, flags));
+                this.setDataProperty(new ByteEntityData(propertyId, flags), send);
             } else {
                 long flags = this.getDataPropertyLong(propertyId);
                 flags ^= 1L << id;
-                this.setDataProperty(new LongEntityData(propertyId, flags));
+                this.setDataProperty(new LongEntityData(propertyId, flags), send);
             }
         }
     }
