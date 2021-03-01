@@ -297,7 +297,7 @@ public class EntityItem extends Entity {
     }
 
     @Override
-    public DataPacket createAddEntityPacket() {
+    public DataPacket createAddEntityPacket(int protocol) {
         AddItemEntityPacket addEntity = new AddItemEntityPacket();
         addEntity.entityUniqueId = this.getId();
         addEntity.entityRuntimeId = this.getId();
@@ -307,7 +307,7 @@ public class EntityItem extends Entity {
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = this.dataProperties;
+        addEntity.metadata = protocol < 274 ? mvReplace(this.dataProperties) : this.dataProperties.createClone();
         addEntity.item = this.item;
         return addEntity;
     }
