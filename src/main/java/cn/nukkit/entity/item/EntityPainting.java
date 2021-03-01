@@ -47,7 +47,7 @@ public class EntityPainting extends EntityHanging {
     }
 
     @Override
-    public DataPacket createAddEntityPacket() {
+    public DataPacket createAddEntityPacket(int protocol) {
         AddPaintingPacket addPainting = new AddPaintingPacket();
         addPainting.entityUniqueId = this.getId();
         addPainting.entityRuntimeId = this.getId();

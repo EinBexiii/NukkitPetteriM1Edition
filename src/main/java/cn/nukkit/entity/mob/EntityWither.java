@@ -128,7 +128,7 @@ public class EntityWither extends EntityFlyingMob implements EntityBoss, EntityS
     }
 
     @Override
-    protected DataPacket createAddEntityPacket() {
+    protected DataPacket createAddEntityPacket(int protocol) {
         AddEntityPacket addEntity = new AddEntityPacket();
         addEntity.type = NETWORK_ID;
         addEntity.entityUniqueId = this.getId();
@@ -142,7 +142,7 @@ public class EntityWither extends EntityFlyingMob implements EntityBoss, EntityS
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = this.dataProperties;
+        addEntity.metadata = protocol < 274 ? mvReplace(this.dataProperties) : this.dataProperties.createClone();
         addEntity.attributes = new Attribute[]{Attribute.getAttribute(Attribute.MAX_HEALTH).setMaxValue(witherMaxHealth()).setValue(witherMaxHealth())};
         return addEntity;
     }

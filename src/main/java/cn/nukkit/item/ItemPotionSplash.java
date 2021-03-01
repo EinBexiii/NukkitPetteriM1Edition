@@ -18,7 +18,7 @@ public class ItemPotionSplash extends ProjectileItem {
 
     @Override
     public int getMaxStackSize() {
-        return 1;
+        return 16;
     }
 
     @Override

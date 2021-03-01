@@ -1,37 +1,3 @@
-package cn.nukkit.entity.item;
-
-import cn.nukkit.Player;
-import cn.nukkit.Server;
-import cn.nukkit.block.Block;
-import cn.nukkit.entity.Entity;
-import cn.nukkit.entity.data.LongEntityData;
-import cn.nukkit.entity.projectile.EntityProjectile;
-import cn.nukkit.event.entity.EntityDamageByChildEntityEvent;
-import cn.nukkit.event.entity.EntityDamageByEntityEvent;
-import cn.nukkit.event.entity.EntityDamageEvent;
-import cn.nukkit.event.entity.EntityDamageEvent.DamageCause;
-import cn.nukkit.event.entity.ProjectileHitEvent;
-import cn.nukkit.item.Item;
-import cn.nukkit.item.randomitem.Fishing;
-import cn.nukkit.level.MovingObjectPosition;
-import cn.nukkit.level.format.FullChunk;
-import cn.nukkit.level.particle.BubbleParticle;
-import cn.nukkit.level.particle.WaterParticle;
-import cn.nukkit.math.Vector3;
-import cn.nukkit.math.Vector3f;
-import cn.nukkit.nbt.NBTIO;
-import cn.nukkit.nbt.tag.CompoundTag;
-import cn.nukkit.network.protocol.AddEntityPacket;
-import cn.nukkit.network.protocol.EntityEventPacket;
-import cn.nukkit.utils.Utils;
-
-import java.util.Collection;
-import java.util.concurrent.ThreadLocalRandom;
-
-
-/**
- * Created by PetteriM1
- */
 public class EntityFishingHook extends EntityProjectile {
 
 	public static final int NETWORK_ID = 77;
