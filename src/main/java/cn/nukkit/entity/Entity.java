@@ -308,7 +308,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     protected float absorption = 0;
 
-    public float ySize = 0;
+    protected float ySize = 0;
     public boolean keepMovement = false;
 
     public float fallDistance = 0;
