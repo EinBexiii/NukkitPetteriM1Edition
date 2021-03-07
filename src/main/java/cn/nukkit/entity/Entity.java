@@ -317,6 +317,7 @@ public abstract class Entity extends Location implements Metadatable {
     public int inPortalTicks = 0;
     public int inEndPortalTicks = 0;
     public Position portalPos = null;
+    
 
     public float scale = 1;
 
