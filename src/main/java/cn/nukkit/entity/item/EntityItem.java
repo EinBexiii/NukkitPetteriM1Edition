@@ -312,7 +312,7 @@ public class EntityItem extends Entity {
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = protocol < 274 ? mvReplace(this.dataProperties) : this.dataProperties.createClone();
+        addEntity.metadata = this.dataProperties;
         addEntity.item = this.item;
         return addEntity;
     }

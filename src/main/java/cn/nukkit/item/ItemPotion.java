@@ -59,7 +59,7 @@ public class ItemPotion extends Item {
 
     @Override
     public int getMaxStackSize() {
-        return 16;
+        return 1;
     }
 
     @Override
