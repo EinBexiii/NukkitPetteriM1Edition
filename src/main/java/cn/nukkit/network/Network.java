@@ -4,6 +4,7 @@ import cn.nukkit.Nukkit;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.network.protocol.*;
+import cn.nukkit.network.protocol.SetScorePacket;
 import cn.nukkit.utils.BinaryStream;
 import cn.nukkit.utils.Utils;
 import cn.nukkit.utils.VarInt;
@@ -366,5 +367,8 @@ public class Network {
         this.registerPacket(ProtocolInfo.EMOTE_PACKET, EmotePacket.class);
         this.registerPacket(ProtocolInfo.ITEM_COMPONENT_PACKET, ItemComponentPacket.class);
         this.registerPacket(ProtocolInfo.FILTER_TEXT_PACKET, FilterTextPacket.class);
+        this.registerPacket(ProtocolInfo.SET_SCORE_PACKET, SetScorePacket.class);
+        this.registerPacket(ProtocolInfo.REMOVE_OBJECTIVE_PACKET, RemoveObjectivePacket.class);
+        this.registerPacket(ProtocolInfo.SET_DISPLAY_OBJECTIVE_PACKET, SetObjectivePacket.class);
     }
 }

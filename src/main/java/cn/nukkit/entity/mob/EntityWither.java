@@ -128,7 +128,7 @@ public class EntityWither extends EntityFlyingMob implements EntityBoss, EntityS
     }
 
     @Override
-    protected DataPacket createAddEntityPacket() {
+    protected DataPacket createAddEntityPacket(int protocol) {
         AddEntityPacket addEntity = new AddEntityPacket();
         addEntity.type = NETWORK_ID;
         addEntity.entityUniqueId = this.getId();
