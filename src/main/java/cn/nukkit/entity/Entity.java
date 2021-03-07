@@ -968,7 +968,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     public void spawnTo(Player player) {
         if (!this.hasSpawned.containsKey(player.getLoaderId()) && player.usedChunks.containsKey(Level.chunkHash(this.chunk.getX(), this.chunk.getZ()))) {
-            player.dataPacket(createAddEntityPacket(player.protocol));
+            player.dataPacket(createAddEntityPacket());
             this.hasSpawned.put(player.getLoaderId(), player);
 
             if (this.riding != null) {
@@ -995,10 +995,6 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     protected DataPacket createAddEntityPacket() {
-        return createAddEntityPacket(ProtocolInfo.CURRENT_PROTOCOL);
-    }
-
-    protected DataPacket createAddEntityPacket(int protocol) {
         AddEntityPacket addEntity = new AddEntityPacket();
         addEntity.type = this.getNetworkId();
         addEntity.entityUniqueId = this.id;
@@ -1012,7 +1008,7 @@ public abstract class Entity extends Location implements Metadatable {
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = this.dataProperties;
+        addEntity.metadata = this.dataProperties.clone();
 
         addEntity.links = new EntityLink[this.passengers.size()];
         for (int i = 0; i < addEntity.links.length; i++) {
@@ -1044,29 +1040,13 @@ public abstract class Entity extends Location implements Metadatable {
         this.sendData(player, null);
     }
 
-public void sendData(Player player, EntityMetadata data) {
+    public void sendData(Player player, EntityMetadata data) {
         SetEntityDataPacket pk = new SetEntityDataPacket();
         pk.eid = this.id;
-        if (player.protocol < 274) {
-            pk.metadata = data == null ? mvReplace(this.dataProperties) : mvReplace(data);
-        } else {
-            pk.metadata = data == null ? this.dataProperties : data;
-        }
+        pk.metadata = data == null ? this.dataProperties.clone() : data;
 
         //player.dataPacket(pk);
         player.batchDataPacket(pk);
-    }
-
-    private EntityMetadata mvReplace(EntityMetadata data) {
-        EntityMetadata updated = new EntityMetadata()
-                .putLong(DATA_FLAGS, data.getLong(DATA_FLAGS))
-                .putShort(DATA_AIR, data.getShort(DATA_AIR))
-                .putShort(43, data.getShort(DATA_MAX_AIR))
-                .putString(DATA_NAMETAG, data.getString(DATA_NAMETAG))
-                .putLong(DATA_LEAD_HOLDER_EID, data.getLong(DATA_LEAD_HOLDER_EID))
-                .putFloat(DATA_SCALE, data.getFloat(DATA_SCALE));
-        // TODO: All other data properties
-        return updated;
     }
 
     public void sendData(Player[] players) {
@@ -1082,25 +1062,17 @@ public void sendData(Player player, EntityMetadata data) {
             if (player == this) {
                 continue;
             }
-            if (player.protocol < 274) {
-                pk.metadata = data == null ? mvReplace(this.dataProperties) : mvReplace(data);
-            } else {
-                pk.metadata = data == null ? this.dataProperties : data;
-            }
+            pk.metadata = data == null ? this.dataProperties.clone() : data;
             //player.dataPacket(pk/*.clone()*/);
-            player.batchDataPacket(pk);
+            player.batchDataPacket(pk.clone());
         }
         if (this.isPlayer) {
-            if (((Player) this).protocol < 274) {
-                pk.metadata = data == null ? mvReplace(this.dataProperties) : mvReplace(data);
-            } else {
-                pk.metadata = data == null ? this.dataProperties : data;
-            }
+            pk.metadata = data == null ? this.dataProperties.clone() : data;
             //((Player) this).dataPacket(pk);
             ((Player) this).batchDataPacket(pk);
         }
     }
-  
+
     public void despawnFrom(Player player) {
         if (this.hasSpawned.containsKey(player.getLoaderId())) {
             RemoveEntityPacket pk = new RemoveEntityPacket();
@@ -1138,7 +1110,6 @@ public void sendData(Player player, EntityMetadata data) {
                     p.getInventory().clear(p.getInventory().getHeldItemIndex());
                     totem = true;
                 }
-
                 if (totem) {
                     this.getLevel().addLevelEvent(this, LevelEventPacket.EVENT_SOUND_TOTEM);
                     this.getLevel().addParticleEffect(this, ParticleEffect.TOTEM);
@@ -1159,15 +1130,8 @@ public void sendData(Player player, EntityMetadata data) {
                     source.setCancelled(true);
                     return false;
                 }
-
-                newHealth = health;
             }
         }
-
-        if(this instanceof Player && !(((Player) this).isCanDamage())) {
-            return true;
-        }
-
         setHealth(newHealth);
         return true;
     }
@@ -2376,11 +2340,7 @@ public void sendData(Player player, EntityMetadata data) {
                 EntityMetadata d = new EntityMetadata().put(this.dataProperties.get(data.getId()));
                 SetEntityDataPacket pk = new SetEntityDataPacket();
                 pk.eid = this.id;
-                if (((Player) this).protocol < 274) {
-                    pk.metadata = d == null ? mvReplace(this.dataProperties) : mvReplace(d);
-                } else {
-                    pk.metadata = d == null ? this.dataProperties : d;
-                }
+                pk.metadata = d == null ? this.dataProperties.clone() : d;
                 //((Player) this).dataPacket(pk);
                 ((Player) this).batchDataPacket(pk);
             }
