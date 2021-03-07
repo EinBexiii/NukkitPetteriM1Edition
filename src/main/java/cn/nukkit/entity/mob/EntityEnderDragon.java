@@ -117,7 +117,7 @@ public class EntityEnderDragon extends EntityFlyingMob implements EntityBoss {
     }
 
     @Override
-    protected DataPacket createAddEntityPacket(int protocol) {
+    protected DataPacket createAddEntityPacket() {
         AddEntityPacket addEntity = new AddEntityPacket();
         addEntity.type = NETWORK_ID;
         addEntity.entityUniqueId = this.getId();
