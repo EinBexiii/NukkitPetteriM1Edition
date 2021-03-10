@@ -1,3 +1,4 @@
+
 package cn.nukkit.entity;
 
 import cn.nukkit.Player;
@@ -111,6 +112,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_RIDER_ROTATION_LOCKED = 57; //byte
     public static final int DATA_RIDER_MAX_ROTATION = 58; //float
     public static final int DATA_RIDER_MIN_ROTATION = 59; //float
+    public static final int DATA_RIDER_ROTATION_OFFSET = 60; //1.16.210+
     public static final int DATA_AREA_EFFECT_CLOUD_RADIUS = 60; //float
     public static final int DATA_AREA_EFFECT_CLOUD_WAITING = 61; //int
     public static final int DATA_AREA_EFFECT_CLOUD_PARTICLE_ID = 62; //int
@@ -126,9 +128,9 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_LIMITED_LIFE = 77;
     public static final int DATA_ARMOR_STAND_POSE_INDEX = 78; // int
     public static final int DATA_ENDER_CRYSTAL_TIME_OFFSET = 79; // int
-    public static final int DATA_ALWAYS_SHOW_NAMETAG = 80; // byte
+    public static final int DATA_ALWAYS_SHOW_NAMETAG = 80; // byte, 81 on 1.16.210+
     public static final int DATA_COLOR_2 = 81; // byte
-    public static final int DATA_SCORE_TAG = 83; //String
+    public static final int DATA_SCORE_TAG = 83; //String, 84 on 1.16.210+
     public static final int DATA_BALLOON_ATTACHED_ENTITY = 84; // long
     public static final int DATA_PUFFERFISH_SIZE = 85;
     public static final int DATA_FLAGS_EXTENDED = 91, DATA_FLAGS2 = DATA_FLAGS_EXTENDED; //long (extended data flags)
@@ -148,6 +150,8 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_HITBOX = 117;
     public static final int DATA_IS_BUOYANT = 118;
     public static final int DATA_BUOYANCY_DATA = 119;
+    public static final int DATA_FREEZING_EFFECT_STRENGTH = 120; //1.16.210+
+    public static final int DATA_GOAT_HORN_COUNT = 122; //1.16.210+
 
     // Flags
     public static final int DATA_FLAG_ONFIRE = 0;
@@ -243,6 +247,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_FLAG_CELEBRATING = 92;
     public static final int DATA_FLAG_ADMIRING = 93;
     public static final int DATA_FLAG_CELEBRATING_SPECIAL = 94;
+    public static final int DATA_FLAG_RAM_ATTACK = 96; //1.16.210+
 
     public static final double STEP_CLIP_MULTIPLIER = 0.4;
 
@@ -308,7 +313,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     protected float absorption = 0;
 
-    public float ySize = 0;
+    protected float ySize = 0;
     public boolean keepMovement = false;
 
     public float fallDistance = 0;
@@ -1132,16 +1137,7 @@ public abstract class Entity extends Location implements Metadatable {
                 }
             }
         }
-        if(this instanceof Player) {
-            Player p = (Player) this;
-
-            if(p.isCanDamage()) {
-                setHealth(newHealth);
-            }
-        }else {
-            setHealth(newHealth);
-        }
-
+        setHealth(newHealth);
         return true;
     }
 
