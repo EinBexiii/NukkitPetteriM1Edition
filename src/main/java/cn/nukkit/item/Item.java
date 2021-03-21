@@ -297,6 +297,7 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
             list[NETHERITE_LEGGINGS] = ItemLeggingsNetherite.class; //750
             list[NETHERITE_BOOTS] = ItemBootsNetherite.class; //751
             list[NETHERITE_SCRAP] = ItemScrapNetherite.class; //752
+            list[WARPED_FUNGUS_ON_A_STICK] = ItemWarpedFungusOnAStick.class; //757
             list[RECORD_PIGSTEP] = ItemRecordPigstep.class; //759
 
             for (int i = 0; i < 256; ++i) {
@@ -399,7 +400,10 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
         // Creative inventory for 407+
         for (Map map : new Config(Config.YAML).loadFromStream(Server.class.getClassLoader().getResourceAsStream("creativeitems407.json")).getMapList("items")) {
             try {
-                addCreativeItem(v1_16_0, fromJson(map));
+                Item item = fromJson(map);
+                Item newItem = new Item(item.getId(), item.getDamage(), item.getCount());
+                newItem.setCompoundTag(item.getCompoundTag());
+                addCreativeItem(v1_16_0, newItem);
             } catch (Exception e) {
                 MainLogger.getLogger().logException(e);
             }
