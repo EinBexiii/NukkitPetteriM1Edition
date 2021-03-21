@@ -986,9 +986,12 @@ public class Server {
     }
 
     public void sendFullPlayerListData(Player player) {
+
+        final List<Player> players = new ObjectArrayList<>(this.playerList.values());
+
         PlayerListPacket pk = new PlayerListPacket();
         pk.type = PlayerListPacket.TYPE_ADD;
-        pk.entries = this.playerList.values().stream()
+        pk.entries = players.stream()
                 .map(p -> new PlayerListPacket.Entry(
                         p.getUniqueId(),
                         p.getId(),
