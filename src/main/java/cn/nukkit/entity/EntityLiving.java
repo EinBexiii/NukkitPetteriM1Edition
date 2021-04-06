@@ -326,7 +326,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
 
         boolean inWater = this.isSubmerged();
 
-        if (this instanceof Player) {
+        if (this instanceof Player && !this.closed) {
             Player p = (Player) this;
             boolean isBreathing = !inWater;
 

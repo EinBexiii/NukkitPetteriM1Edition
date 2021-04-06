@@ -81,7 +81,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_DISPLAY_ITEM = 16; //int (id | (data << 16))
     public static final int DATA_DISPLAY_OFFSET = 17; //int
     public static final int DATA_HAS_DISPLAY = 18; //byte (must be 1 for minecart to show block inside)
-    public static final int DATA_ENDERMAN_HELD_RUNTIME_ID = 23; //short
+    public static final int DATA_ENDERMAN_HELD_RUNTIME_ID = 23; //int (block runtime id)
     public static final int DATA_ENTITY_AGE = 24; //short
     public static final int DATA_PLAYER_FLAGS = 26; //byte
     public static final int DATA_PLAYER_BED_POSITION = 28; //block coords
@@ -312,7 +312,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     protected float absorption = 0;
 
-    public float ySize = 0;
+    protected float ySize = 0;
     public boolean keepMovement = false;
 
     public float fallDistance = 0;
@@ -1136,15 +1136,7 @@ public abstract class Entity extends Location implements Metadatable {
                 }
             }
         }
-        if(this instanceof Player) {
-            Player p = (Player) this;
-
-            if(p.isCanDamage()) {
-                setHealth(newHealth);
-            }
-        }else {
-            setHealth(newHealth);
-        }
+        setHealth(newHealth);
         return true;
     }
 

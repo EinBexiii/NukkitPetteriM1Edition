@@ -101,7 +101,6 @@ import java.util.List;
 import java.util.*;
 import java.util.Queue;
 import java.util.Map.Entry;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -902,6 +901,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(this, pos, true);
 
         this.server.getPluginManager().callEvent(respawnEvent);
+
+        // Fix falling
+        this.sendPosition(this, yaw, pitch, MovePlayerPacket.MODE_RESET);
 
         if (this.getHealth() < 1 || this.protocol < 274) {
             pos = this.getSpawn();
@@ -1900,7 +1902,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                     if (!ev.isCancelled()) {
                                         this.setMotion(new Vector3(0, expectedVelocity, 0));
                                     }
-                                } else if (this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server")) {
+                                } else if (this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server", true, "type=MOVE, expectedVelocity=" + expectedVelocity + ", diff=" + diff + ", speed.y=" + speed.y)) {
                                     return false;
                                 }
                             }
@@ -2388,7 +2390,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         break;
                     }
 
-                    if (this.server.getOnlinePlayersCount() >= this.server.getMaxPlayers() && this.kick(PlayerKickEvent.Reason.SERVER_FULL, "disconnectionScreen.serverFull", false)) {
+                    if (this.server.getOnlinePlayersCount() >= this.server.getMaxPlayers() && this.kick(PlayerKickEvent.Reason.SERVER_FULL, "disconnectionScreen.serverFull")) {
                         break;
                     }
 
@@ -2601,7 +2603,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 case ProtocolInfo.ADVENTURE_SETTINGS_PACKET:
                     AdventureSettingsPacket adventureSettingsPacket = (AdventureSettingsPacket) packet;
                     if (!server.getAllowFlight() && (adventureSettingsPacket.getFlag(AdventureSettingsPacket.ALLOW_FLIGHT) || adventureSettingsPacket.getFlag(AdventureSettingsPacket.FLYING)) && !this.adventureSettings.get(Type.ALLOW_FLIGHT)) {
-                        this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server");
+                        this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server", true, "type=AdventureSettingsPacket, flags=" + (adventureSettingsPacket.getFlag(AdventureSettingsPacket.ALLOW_FLIGHT) ? "ALLOW_FLIGHT " : "") + (adventureSettingsPacket.getFlag(AdventureSettingsPacket.ALLOW_FLIGHT) ? "FLYING" : ""));
                         break;
                     }
                     PlayerToggleFlightEvent playerToggleFlightEvent = new PlayerToggleFlightEvent(this, adventureSettingsPacket.getFlag(AdventureSettingsPacket.FLYING));
@@ -2672,8 +2674,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                     ((BlockNoteblock) target).emitSound();
                                     break actionswitch;
                                 case Block.DRAGON_EGG:
-                                    ((BlockDragonEgg) target).teleport();
-                                    break actionswitch;
+                                    if (!this.isCreative()) {
+                                        ((BlockDragonEgg) target).teleport();
+                                        break actionswitch;
+                                    }
                             }
                             Block block = target.getSide(face);
                             if (block.getId() == Block.FIRE) {
@@ -2793,8 +2797,16 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             this.scheduleUpdate();
                             break;
                         case PlayerActionPacket.ACTION_JUMP:
-                            if (this.inAirTicks > 30 && this.checkMovement && !server.getAllowFlight() && !this.isSwimming() && !this.isGliding()) {
-                                this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server");
+                            if (this.inAirTicks > 40 && this.checkMovement && !server.getAllowFlight() && !this.isCreative() && !this.isSwimming() && !this.isGliding()) {
+                                if (this.inAirTicks < 150) {
+                                    PlayerInvalidMoveEvent playerInvalidMoveEvent = new PlayerInvalidMoveEvent(this, true);
+                                    this.getServer().getPluginManager().callEvent(playerInvalidMoveEvent);
+                                    if (!playerInvalidMoveEvent.isCancelled()) {
+                                        this.motionY = -4;
+                                    }
+                                } else {
+                                    this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server", true, "type=ACTION_JUMP, inAirTicks=" + this.inAirTicks);
+                                }
                                 break;
                             }
                             this.server.getPluginManager().callEvent(new PlayerJumpEvent(this));
@@ -2842,7 +2854,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             if (!server.getAllowFlight() && this.checkMovement) {
                                 Item chestplate = this.getInventory().getChestplateFast();
                                 if ((chestplate == null || chestplate.getId() != ItemID.ELYTRA) && !server.getAllowFlight()) {
-                                    this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server");
+                                    this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server", true, "type=ACTION_START_GLIDE");
                                     break;
                                 }
                             }
@@ -3201,7 +3213,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     SetPlayerGameTypePacket setPlayerGameTypePacket = (SetPlayerGameTypePacket) packet;
                     if (setPlayerGameTypePacket.gamemode != this.gamemode) {
                         if (!this.hasPermission("nukkit.command.gamemode")) {
-                            this.kick(PlayerKickEvent.Reason.INVALID_PACKET, "Invalid SetPlayerGameTypePacket");
+                            this.kick(PlayerKickEvent.Reason.INVALID_PACKET, "Invalid SetPlayerGameTypePacket", true, "type=SetPlayerGameTypePacket");
                             /*SetPlayerGameTypePacket setPlayerGameTypePacket1 = new SetPlayerGameTypePacket();
                             setPlayerGameTypePacket1.gamemode = this.gamemode & 0x01;
                             this.dataPacket(setPlayerGameTypePacket1);
@@ -3938,8 +3950,12 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
     public boolean kick(PlayerKickEvent.Reason reason, String reasonString, boolean isAdmin) {
+        return kick(reason, reasonString, isAdmin, "");
+    }
+
+    public boolean kick(PlayerKickEvent.Reason reason, String reasonString, boolean isAdmin, String extraData) {
         PlayerKickEvent ev;
-        this.server.getPluginManager().callEvent(ev = new PlayerKickEvent(this, reason, this.getLeaveMessage()));
+        this.server.getPluginManager().callEvent(ev = new PlayerKickEvent(this, reason, reasonString, this.getLeaveMessage(), extraData));
         if (!ev.isCancelled()) {
             String message;
             if (isAdmin) {
