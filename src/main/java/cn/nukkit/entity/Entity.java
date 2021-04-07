@@ -1136,7 +1136,16 @@ public abstract class Entity extends Location implements Metadatable {
                 }
             }
         }
-        setHealth(newHealth);
+
+        if(this instanceof Player) {
+            Player p = (Player) this;
+            if(p.isCanDamage()) {
+                setHealth(newHealth);
+            }
+        }else {
+            setHealth(newHealth);
+        }
+
         return true;
     }
 
