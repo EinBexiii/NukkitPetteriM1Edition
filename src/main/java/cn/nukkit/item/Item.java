@@ -402,7 +402,7 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
         for (Map map : new Config(Config.YAML).loadFromStream(Server.class.getClassLoader().getResourceAsStream("creativeitems407.json")).getMapList("items")) {
             try {
                 Item item = fromJson(map);
-                Item newItem = new Item(item.getId(), item.getDamage(), item.getCount());
+                Item newItem = Item.get(item.getId(), item.getDamage(), item.getCount());
                 newItem.setCompoundTag(item.getCompoundTag());
                 addCreativeItem(v1_16_0, newItem);
             } catch (Exception e) {
@@ -808,7 +808,8 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
     }
 
     public boolean hasEnchantment(int id) {
-        return this.getEnchantment(id) != null;
+        Enchantment e = this.getEnchantment(id);
+        return e != null && e.getLevel() > 0;
     }
 
     public boolean hasEnchantment(short id) {
@@ -1256,6 +1257,10 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
         } catch (CloneNotSupportedException e) {
             return null;
         }
+    }
+
+    public final int getNetworkId() {
+        return getNetworkId(ProtocolInfo.CURRENT_PROTOCOL);
     }
 
     public final int getNetworkId(int protocol) {
