@@ -391,8 +391,8 @@ public class Server {
         // Convert legacy data before plugins get the chance to mess with it
         try {
             nameLookup = Iq80DBFactory.factory.open(new File(dataPath, "players"), new Options()
-                            .createIfMissing(true)
-                            .compressionType(CompressionType.ZLIB_RAW));
+                    .createIfMissing(true)
+                    .compressionType(CompressionType.ZLIB_RAW));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -988,12 +988,9 @@ public class Server {
     }
 
     public void sendFullPlayerListData(Player player) {
-
-        final List<Player> players = new ObjectArrayList<>(this.playerList.values());
-
         PlayerListPacket pk = new PlayerListPacket();
         pk.type = PlayerListPacket.TYPE_ADD;
-        pk.entries = players.stream()
+        pk.entries = this.playerList.values().stream()
                 .map(p -> new PlayerListPacket.Entry(
                         p.getUniqueId(),
                         p.getId(),
@@ -1016,7 +1013,7 @@ public class Server {
         } else if (player.protocol == ProtocolInfo.v1_12_0) {
             player.dataPacket(CraftingManager.packet361);
         } else if (player.protocol == ProtocolInfo.v1_11_0) {
-             player.dataPacket(CraftingManager.packet354);
+            player.dataPacket(CraftingManager.packet354);
         } else if (player.protocol == ProtocolInfo.v1_10_0) {
             player.dataPacket(CraftingManager.packet340);
         } else if (player.protocol == ProtocolInfo.v1_9_0 || player.protocol == ProtocolInfo.v1_8_0 || player.protocol == ProtocolInfo.v1_7_0) { // these should work just fine
