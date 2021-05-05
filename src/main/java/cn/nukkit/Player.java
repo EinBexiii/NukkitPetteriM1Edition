@@ -496,7 +496,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             this.startAirTicks = 10;
         }
         this.inAirTicks = 0;
-        this.highestPosition = this.y;
     }
 
     @Override
@@ -1039,7 +1038,32 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     @Deprecated
     public boolean batchDataPacket(DataPacket packet) {
-        return this.dataPacket(packet);
+        if (packet instanceof BatchPacket) {
+            return this.directDataPacket(packet); // We don't want to batch a batched packet
+        }
+
+        if (!this.connected) {
+            return false;
+        }
+
+        packet.protocol = this.protocol;
+
+        try (Timing ignore = Timings.getSendDataPacketTiming(packet)) {
+            if (server.callDataPkSendEv) {
+                DataPacketSendEvent event = new DataPacketSendEvent(this, packet);
+                this.server.getPluginManager().callEvent(event);
+                if (event.isCancelled()) {
+                    return false;
+                }
+            }
+
+            if (Nukkit.DEBUG > 2 /*&& !server.isIgnoredPacket(packet.getClass())*/) {
+                log.trace("Outbound {}: {}", this.getName(), packet);
+            }
+
+            this.packetQueue.offer(packet);
+        }
+        return true;
     }
 
     /**
@@ -1057,7 +1081,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         packet.protocol = this.protocol;
 
         try (Timing ignore = Timings.getSendDataPacketTiming(packet)) {
-            if (server.callDataPkEv) {
+            if (server.callDataPkSendEv) {
                 DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
                 this.server.getPluginManager().callEvent(ev);
                 if (ev.isCancelled()) {
@@ -1086,7 +1110,33 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
      * @return packet successfully sent
      */
     public boolean directDataPacket(DataPacket packet) {
-        return this.dataPacket(packet);
+        if (!this.connected) {
+            return false;
+        }
+
+        if (!loggedIn && packet.pid() == ProtocolInfo.SET_ENTITY_DATA_PACKET) {
+            return false; //HACK
+        }
+
+        packet.protocol = this.protocol;
+
+        try (Timing ignore = Timings.getSendDataPacketTiming(packet)) {
+            if (server.callDataPkSendEv && packet.pid() != ProtocolInfo.BATCH_PACKET) {
+                DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+                this.server.getPluginManager().callEvent(ev);
+                if (ev.isCancelled()) {
+                    return false;
+                }
+            }
+
+            if (Nukkit.DEBUG > 2 /*&& !server.isIgnoredPacket(packet.getClass())*/ && packet.pid() != ProtocolInfo.BATCH_PACKET) {
+                log.trace("Outbound {}: {}", this.getName(), packet);
+            }
+
+            this.interfaz.putPacket(this, packet, false, true);
+        }
+
+        return true;
     }
 
     public int directDataPacket(DataPacket packet, boolean needACK) {
@@ -1186,7 +1236,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
     public boolean awardAchievement(String achievementId) {
-        if (!Server.getInstance().achievements) {
+        if (!Server.getInstance().achievementsEnabled) {
             return false;
         }
 
@@ -1864,7 +1914,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         if (this.isOnLadder()) {
                             this.resetFallDistance();
                         } else {
-                            if (diff > 1 && expectedVelocity < this.speed.y && (speed.y < -0.2 || speed.y > 4)) {
+                            if (diff > 2 && expectedVelocity < this.speed.y) {
                                 if (this.inAirTicks < 150) {
                                     PlayerInvalidMoveEvent ev = new PlayerInvalidMoveEvent(this, true);
                                     this.getServer().getPluginManager().callEvent(ev);
@@ -2342,7 +2392,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     if (!loginChainData.isXboxAuthed() && server.xboxAuth) {
                         this.close("", "disconnectionScreen.notAuthenticated");
-                        if (server.banAuthFailed) {
+                        if (server.banXBAuthFailed) {
                             this.server.getNetwork().blockAddress(this.socketAddress.getAddress(), 5);
                             this.server.getLogger().notice("Blocked " + getAddress() + " for 5 seconds due to failed Xbox auth");
                         }
@@ -3616,6 +3666,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                     float itemDamage = item.getAttackDamage();
                                     for (Enchantment enchantment : item.getEnchantments()) {
                                         itemDamage += enchantment.getDamageBonus(target);
+                                        enchantment.doAttack(this, target);
                                     }
 
                                     Map<DamageModifier, Float> damage = new EnumMap<>(DamageModifier.class);
@@ -3626,7 +3677,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                     } else if (target instanceof Player) {
                                         if ((((Player) target).gamemode & 0x01) > 0) {
                                             break;
-                                        } else if (!this.server.pvp) {
+                                        } else if (!this.server.pvpEnabled) {
                                             break;
                                         }
                                     }
@@ -5465,6 +5516,12 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 }
 
                 InventoryPickupTridentEvent ev = new InventoryPickupTridentEvent(this.inventory, (EntityThrownTrident) entity);
+
+                int pickupMode = ((EntityThrownTrident) entity).getPickupMode();
+                if (pickupMode == EntityThrownTrident.PICKUP_NONE || (pickupMode == EntityThrownTrident.PICKUP_CREATIVE && !this.isCreative())) {
+                    ev.setCancelled();
+                }
+
                 this.server.getPluginManager().callEvent(ev);
                 if (ev.isCancelled()) {
                     return false;
@@ -5645,6 +5702,13 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
      */
     protected void quickBatch(DataPacket pk) {
         pk.protocol = this.protocol;
+        if (server.callDataPkSendEv) {
+            DataPacketSendEvent event = new DataPacketSendEvent(this, pk);
+            this.server.getPluginManager().callEvent(event);
+            if (event.isCancelled()) {
+                return;
+            }
+        }
         pk.tryEncode();
         BinaryStream stream = new BinaryStream();
         byte[] buf = pk.getBuffer();

@@ -138,6 +138,13 @@ public class ItemCrossbow extends ItemBow {
 
             EntityShootBowEvent entityShootBowEvent = new EntityShootBowEvent(player, this, new EntityArrow(player.chunk, nbt, player, false), 3.5);
 
+            EntityArrow arrow = new EntityArrow(player.chunk, nbt, player, false);
+            if (this.hasEnchantment(Enchantment.ID_CROSSBOW_PIERCING)) {
+                arrow.piercing = 1;
+            }
+
+
+            EntityShootBowEvent entityShootBowEvent = new EntityShootBowEvent(player, this, arrow, 3.5);
             Server.getInstance().getPluginManager().callEvent(entityShootBowEvent);
             if (entityShootBowEvent.isCancelled()) {
                 entityShootBowEvent.getProjectile().close();
