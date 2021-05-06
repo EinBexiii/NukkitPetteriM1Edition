@@ -15,6 +15,8 @@ import java.util.List;
 @ToString
 public class CraftingDataPacket extends DataPacket {
 
+    public static final byte NETWORK_ID = ProtocolInfo.CRAFTING_DATA_PACKET;
+
     public static final String CRAFTING_TAG_CRAFTING_TABLE = "crafting_table";
     public static final String CRAFTING_TAG_CARTOGRAPHY_TABLE = "cartography_table";
     public static final String CRAFTING_TAG_STONECUTTER = "stonecutter";
@@ -98,7 +100,7 @@ public class CraftingDataPacket extends DataPacket {
                             }
                         }
                         this.putUnsignedVarInt(1);
-                        this.putSlot(protocol, shapeless.getResult());
+                        this.putSlot(protocol, shapeless.getResult(), protocol >= ProtocolInfo.v1_16_100);
                         this.putUUID(shapeless.getId());
                         if (protocol >= 354) {
                             this.putString(CRAFTING_TAG_CRAFTING_TABLE);
@@ -132,7 +134,7 @@ public class CraftingDataPacket extends DataPacket {
                         outputs.addAll(shaped.getExtraResults());
                         this.putUnsignedVarInt(outputs.size());
                         for (Item output : outputs) {
-                            this.putSlot(protocol, output);
+                            this.putSlot(protocol, output, protocol >= ProtocolInfo.v1_16_100);
                         }
                         this.putUUID(shaped.getId());
                         if (protocol >= 354) {
@@ -153,7 +155,7 @@ public class CraftingDataPacket extends DataPacket {
                         if (recipe.getType() == RecipeType.FURNACE_DATA) {
                             this.putVarInt(input.getDamage());
                         }
-                        this.putSlot(protocol, furnace.getResult());
+                        this.putSlot(protocol, furnace.getResult(), protocol >= ProtocolInfo.v1_16_100);
                         if (protocol >= 354) {
                             this.putString(CRAFTING_TAG_FURNACE);
                         }
@@ -161,7 +163,7 @@ public class CraftingDataPacket extends DataPacket {
                     case MULTI:
                         if (protocol >= ProtocolInfo.v1_16_0) { // ??
                             this.putUUID(((MultiRecipe) recipe).getId());
-                            this.putUnsignedVarInt(0);
+                            this.putUnsignedVarInt(((MultiRecipe) recipe).getNetworkId());
                             break;
                         }
                 }
@@ -171,22 +173,22 @@ public class CraftingDataPacket extends DataPacket {
                 this.putUnsignedVarInt(this.brewingEntries.size());
                 for (BrewingRecipe recipe : brewingEntries) {
                     if (protocol >= 407) {
-                        this.putVarInt(recipe.getInput().getId());
+                        this.putVarInt(recipe.getInput().getNetworkId(protocol));
                     }
                     this.putVarInt(recipe.getInput().getDamage());
-                    this.putVarInt(recipe.getIngredient().getId());
+                    this.putVarInt(recipe.getIngredient().getNetworkId(protocol));
                     if (protocol >= 407) {
                         this.putVarInt(recipe.getIngredient().getDamage());
-                        this.putVarInt(recipe.getResult().getId());
+                        this.putVarInt(recipe.getResult().getNetworkId(protocol));
                     }
                     this.putVarInt(recipe.getResult().getDamage());
                 }
 
                 this.putUnsignedVarInt(this.containerEntries.size());
                 for (ContainerRecipe recipe : containerEntries) {
-                    this.putVarInt(recipe.getInput().getId());
-                    this.putVarInt(recipe.getIngredient().getId());
-                    this.putVarInt(recipe.getResult().getId());
+                    this.putVarInt(recipe.getInput().getNetworkId(protocol));
+                    this.putVarInt(recipe.getIngredient().getNetworkId(protocol));
+                    this.putVarInt(recipe.getResult().getNetworkId(protocol));
                 }
             }
         }
@@ -196,7 +198,7 @@ public class CraftingDataPacket extends DataPacket {
 
     @Override
     public byte pid() {
-        return ProtocolInfo.CRAFTING_DATA_PACKET;
+        return NETWORK_ID;
     }
 
     private int writeEntryLegacy(Object entry, BinaryStream stream) {

@@ -297,6 +297,7 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
             list[NETHERITE_LEGGINGS] = ItemLeggingsNetherite.class; //750
             list[NETHERITE_BOOTS] = ItemBootsNetherite.class; //751
             list[NETHERITE_SCRAP] = ItemScrapNetherite.class; //752
+            list[WARPED_FUNGUS_ON_A_STICK] = ItemWarpedFungusOnAStick.class; //757
             list[RECORD_PIGSTEP] = ItemRecordPigstep.class; //759
 
             for (int i = 0; i < 256; ++i) {
@@ -399,7 +400,10 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
         // Creative inventory for 407+
         for (Map map : new Config(Config.YAML).loadFromStream(Server.class.getClassLoader().getResourceAsStream("creativeitems407.json")).getMapList("items")) {
             try {
-                addCreativeItem(v1_16_0, fromJson(map));
+                Item item = fromJson(map);
+                Item newItem = Item.get(item.getId(), item.getDamage(), item.getCount());
+                newItem.setCompoundTag(item.getCompoundTag());
+                addCreativeItem(v1_16_0, newItem);
             } catch (Exception e) {
                 MainLogger.getLogger().logException(e);
             }
@@ -462,7 +466,11 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
             case v1_16_200_51:
             case v1_16_200:
             case v1_16_210_50:
-            case v1_16_210_53:
+            case v1_16_210:
+            case v1_16_220:
+            case v1_16_230_50:
+            case v1_16_230:
+            case v1_16_230_54:
                 return new ArrayList<>(Item.creative407);
             default:
                 throw new IllegalArgumentException("Tried to get creative items for unsupported protocol version: " + protocol);
@@ -802,7 +810,8 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
     }
 
     public boolean hasEnchantment(int id) {
-        return this.getEnchantment(id) != null;
+        Enchantment e = this.getEnchantment(id);
+        return e != null && e.getLevel() > 0;
     }
 
     public boolean hasEnchantment(short id) {
@@ -1008,6 +1017,10 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
         } else {
             return Block.get(BlockID.AIR);
         }
+    }
+
+    public Block getBlockUnsafe() {
+        return this.block;
     }
 
     public int getBlockId() {
@@ -1240,5 +1253,14 @@ public class Item implements Cloneable, BlockID, ItemID, ProtocolInfo {
         } catch (CloneNotSupportedException e) {
             return null;
         }
+    }
+
+    public final int getNetworkId() {
+        return getNetworkId(ProtocolInfo.CURRENT_PROTOCOL);
+    }
+
+    public final int getNetworkId(int protocol) {
+        if (protocol < ProtocolInfo.v1_16_100) return getId();
+        return RuntimeItems.getNetworkId(RuntimeItems.getRuntimeMapping(protocol).getNetworkFullId(this));
     }
 }

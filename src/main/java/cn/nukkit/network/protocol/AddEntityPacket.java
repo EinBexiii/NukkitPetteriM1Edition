@@ -19,6 +19,8 @@ import lombok.ToString;
 @ToString
 public class AddEntityPacket extends DataPacket {
 
+    public static final byte NETWORK_ID = ProtocolInfo.ADD_ENTITY_PACKET;
+
     public static final ImmutableMap<Integer, String> LEGACY_IDS = ImmutableMap.<Integer, String>builder()
             .put(51, "minecraft:npc")
             .put(63, "minecraft:player")
@@ -109,7 +111,7 @@ public class AddEntityPacket extends DataPacket {
             .put(EntityBlazeFireBall.NETWORK_ID, "minecraft:small_fireball")
             .put(EntityLlamaSpit.NETWORK_ID, "minecraft:llama_spit")
             .put(95, "minecraft:area_effect_cloud")
-            .put(EntityPotionLinearing.NETWORK_ID, "minecraft:lingering_potion")
+            .put(EntityPotionLingering.NETWORK_ID, "minecraft:lingering_potion")
             .put(EntityFirework.NETWORK_ID, "minecraft:fireworks_rocket")
             .put(EntityEvocationFangs.NETWORK_ID, "minecraft:evocation_fang")
             .put(104, "minecraft:evocation_illager")
@@ -132,9 +134,17 @@ public class AddEntityPacket extends DataPacket {
             .put(EntityPiglinBrute.NETWORK_ID, "minecraft:piglin_brute")
             .build();
 
+    private static final ImmutableMap<Integer, String> MV_PRE_407 = ImmutableMap.<Integer, String>builder()
+            .put(EntityPiglin.NETWORK_ID, "minecraft:zombie_pigman")
+            .put(EntityHoglin.NETWORK_ID, "minecraft:pig")
+            .put(EntityStrider.NETWORK_ID, "minecraft:pig")
+            .put(EntityZoglin.NETWORK_ID, "minecraft:pig")
+            .put(EntityPiglinBrute.NETWORK_ID, "minecraft:zombie_pigman")
+            .build();
+
     @Override
     public byte pid() {
-        return ProtocolInfo.ADD_ENTITY_PACKET;
+        return NETWORK_ID;
     }
 
     public long entityUniqueId;
@@ -167,7 +177,18 @@ public class AddEntityPacket extends DataPacket {
             this.putUnsignedVarInt(this.type);
         } else {
             if (id == null) {
-                id = LEGACY_IDS.get(type);
+                if (protocol < ProtocolInfo.v1_16_0) {
+                    if (protocol < ProtocolInfo.v1_14_0 && type == EntityBee.NETWORK_ID) {
+                        id = LEGACY_IDS.get(EntityBat.NETWORK_ID);
+                    } else if (protocol < ProtocolInfo.v1_13_0 && type == EntityFox.NETWORK_ID) {
+                        id = LEGACY_IDS.get(EntityWolf.NETWORK_ID);
+                    } else {
+                        id = MV_PRE_407.get(type);
+                    }
+                }
+                if (id == null) {
+                    id = LEGACY_IDS.get(type);
+                }
             }
             this.putString(this.id);
         }

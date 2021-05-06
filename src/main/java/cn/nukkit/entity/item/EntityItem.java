@@ -184,7 +184,7 @@ public class EntityItem extends Entity {
 
                     for (Entity entity : e) {
                         if (entity instanceof EntityItem) {
-                            if (!entity.isAlive()) {
+                            if (entity.closed || !entity.isAlive()) {
                                 continue;
                             }
                             Item closeItem = ((EntityItem) entity).item;
@@ -312,7 +312,7 @@ public class EntityItem extends Entity {
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = this.dataProperties;
+        addEntity.metadata = this.dataProperties.clone();
         addEntity.item = this.item;
         return addEntity;
     }

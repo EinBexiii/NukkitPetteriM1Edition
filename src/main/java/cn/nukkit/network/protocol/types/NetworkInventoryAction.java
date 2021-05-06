@@ -107,7 +107,7 @@ public class NetworkInventoryAction {
         this.oldItem = packet.getSlot(packet.protocol);
         this.newItem = packet.getSlot(packet.protocol);
 
-        if (packet.hasNetworkIds && packet.protocol >= 407) {
+        if (packet.hasNetworkIds && packet.protocol >= 407 && packet.protocol < ProtocolInfo.v1_16_220) {
             this.stackNetworkId = packet.getVarInt();
         }
 
@@ -136,7 +136,7 @@ public class NetworkInventoryAction {
         packet.putSlot(packet.protocol, this.oldItem);
         packet.putSlot(packet.protocol, this.newItem);
 
-        if (packet.hasNetworkIds && packet.protocol >= 407) {
+        if (packet.hasNetworkIds && packet.protocol >= 407 && packet.protocol < ProtocolInfo.v1_16_220) {
             packet.putVarInt(this.stackNetworkId);
         }
     }
@@ -147,6 +147,14 @@ public class NetworkInventoryAction {
                 if (this.windowId == ContainerIds.ARMOR) {
                     this.inventorySlot += 36;
                     this.windowId = ContainerIds.INVENTORY;
+                    if (this.newItem == null ||
+                            (this.inventorySlot == 36 && !this.newItem.isHelmet() && !this.oldItem.isHelmet()) ||
+                            (this.inventorySlot == 37 && !this.newItem.isChestplate() && !this.oldItem.isChestplate()) ||
+                            (this.inventorySlot == 38 && !this.newItem.isLeggings() && !this.oldItem.isLeggings()) ||
+                            (this.inventorySlot == 39 && !this.newItem.isBoots()) && !this.oldItem.isBoots()) {
+                        player.getServer().getLogger().error("Player " + player.getName() + " tried to set an invalid armor item");
+                        return null;
+                    }
                 }
 
                 // ID 124 with slot 14/15 is enchant inventory

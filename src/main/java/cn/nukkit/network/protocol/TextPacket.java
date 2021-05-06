@@ -5,9 +5,11 @@ import lombok.ToString;
 @ToString
 public class TextPacket extends DataPacket {
 
+    public static final byte NETWORK_ID = ProtocolInfo.TEXT_PACKET;
+
     @Override
     public byte pid() {
-        return ProtocolInfo.TEXT_PACKET;
+        return NETWORK_ID;
     }
 
     public static final byte TYPE_RAW = 0;
@@ -62,9 +64,7 @@ public class TextPacket extends DataPacket {
                 }
         }
         if (protocol >= 223) {
-            if (protocol >= 361) {
-                this.xboxUserId = this.getString();
-            }
+            this.xboxUserId = this.getString();
             this.platformChatId = this.getString();
         }
     }
@@ -101,9 +101,7 @@ public class TextPacket extends DataPacket {
                 }
         }
         if (protocol >= 223) {
-            if (protocol >= 361) {
-                this.putString(this.xboxUserId);
-            }
+            this.putString(this.xboxUserId);
             this.putString(this.platformChatId);
         }
     }

@@ -50,6 +50,7 @@ public class EntityBoat extends EntityVehicle {
 
     protected boolean sinking = true;
     public int woodID;
+    private boolean inWater;
 
     public EntityBoat(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
@@ -143,9 +144,9 @@ public class EntityBoat extends EntityVehicle {
         if (this.isAlive()) {
             super.onUpdate(currentTick);
 
+            inWater = false;
             double waterDiff = getWaterLevel();
             if (!hasControllingPassenger()) {
-
                 if (waterDiff > SINKING_DEPTH && !sinking) {
                     sinking = true;
                 } else if (waterDiff < -0.07 && sinking) {
@@ -157,13 +158,15 @@ public class EntityBoat extends EntityVehicle {
                 } else if (waterDiff < 0 || !sinking) {
                     this.motionY = this.motionY > SINKING_MAX_SPEED ? Math.max(this.motionY - 0.02, SINKING_MAX_SPEED) : this.motionY + SINKING_SPEED;
                 }
+            } else if (!inWater && level.getBlockIdAt(NukkitMath.floorDouble(x), ((int) y) - 1, NukkitMath.floorDouble(z)) == 0) {
+                this.motionY = -0.5;
             }
 
             if (this.checkObstruction(this.x, this.y, this.z)) {
                 hasUpdate = true;
             }
 
-            this.move(this.motionX, this.motionY, this.motionZ);
+            //this.move(this.motionX, this.motionY, this.motionZ);
 
             double friction = 1 - this.getDrag();
 
@@ -190,20 +193,38 @@ public class EntityBoat extends EntityVehicle {
                 this.getServer().getPluginManager().callEvent(new VehicleMoveEvent(this, from, to));
             }
 
-            //TODO: Lily pad collision
+            this.move(this.motionX, this.motionY, this.motionZ);
+
             this.updateMovement();
 
-            if (this.age % 5 == 0 && this.passengers.size() < 2) {
-                Entity[] e = this.level.getCollidingEntities(this.boundingBox.grow(0.20000000298023224, 0.0D, 0.20000000298023224), this);
-                for (Entity entity : e) {
-                    if (entity.riding != null || !(entity instanceof EntityLiving) || entity instanceof Player || entity instanceof EntityWaterAnimal || isPassenger(entity)) {
-                        continue;
+            if (this.age % 5 == 0) {
+                int passengersCount = this.passengers.size();
+                if (passengersCount > 0 && this.age % 2 == 0) {
+                    Block[] blocks = this.level.getCollisionBlocks(this.getBoundingBox().grow(0.1, 0.1, 0.1));
+                    for (Block b : blocks) {
+                        if (b.getId() == Block.LILY_PAD) {
+                            this.level.setBlockAt((int) b.x, (int) b.y, (int) b.z, 0, 0);
+                            this.level.dropItem(b, Item.get(Item.LILY_PAD, 0, 1));
+                        }
                     }
+                }
 
-                    this.mountEntity(entity);
+                if (passengersCount < 2) {
+                    Entity[] e = this.level.getCollidingEntities(this.boundingBox.grow(0.20000000298023224, 0.0D, 0.20000000298023224), this);
+                    for (Entity entity : e) {
+                        if (entity.isPlayer && !isPassenger(entity)) {
+                            entity.resetFallDistance(); // Hack: Don't kick players standing on a boat for flying
+                        }
 
-                    if (this.passengers.size() >= 2) {
-                        break;
+                        if (entity.riding != null || !(entity instanceof EntityLiving) || entity instanceof Player || entity instanceof EntityWaterAnimal || isPassenger(entity)) {
+                            continue;
+                        }
+
+                        this.mountEntity(entity);
+
+                        if (this.passengers.size() >= 2) {
+                            break;
+                        }
                     }
                 }
             }
@@ -286,6 +307,7 @@ public class EntityBoat extends EntityVehicle {
                     double level = block.getMaxY();
 
                     diffY = Math.min(maxY - level, diffY);
+                    inWater = true;
                 }
             }
 
@@ -333,7 +355,7 @@ public class EntityBoat extends EntityVehicle {
 
         updatePassengers();
         entity.setDataProperty(new ByteEntityData(DATA_RIDER_ROTATION_LOCKED, 0));
-
+        entity.resetFallDistance();
         return r;
     }
 

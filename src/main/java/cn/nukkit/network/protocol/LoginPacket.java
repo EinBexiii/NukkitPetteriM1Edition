@@ -17,6 +17,8 @@ import java.util.*;
 @ToString
 public class LoginPacket extends DataPacket {
 
+    public static final byte NETWORK_ID = ProtocolInfo.LOGIN_PACKET;
+
     public String username;
     private int protocol_;
     public UUID clientUUID;
@@ -27,7 +29,7 @@ public class LoginPacket extends DataPacket {
 
     @Override
     public byte pid() {
-        return ProtocolInfo.LOGIN_PACKET;
+        return NETWORK_ID;
     }
 
     @Override
@@ -109,6 +111,10 @@ public class LoginPacket extends DataPacket {
                 skin.setGeometryData(new String(Base64.getDecoder().decode(skinToken.get("SkinGeometry").getAsString()), StandardCharsets.UTF_8));
             }
         } else {
+            if (skinToken.has("PlayFabID")) {
+                skin.setPlayFabId(skinToken.get("PlayFabID").getAsString());
+            }
+
             if (skinToken.has("CapeId")) {
                 skin.setCapeId(skinToken.get("CapeId").getAsString());
             }

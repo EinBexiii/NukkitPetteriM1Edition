@@ -10,9 +10,11 @@ import lombok.ToString;
 @ToString
 public class InventorySlotPacket extends DataPacket {
 
+    public static final byte NETWORK_ID = ProtocolInfo.INVENTORY_SLOT_PACKET;
+
     @Override
     public byte pid() {
-        return ProtocolInfo.INVENTORY_SLOT_PACKET;
+        return NETWORK_ID;
     }
 
     public int inventoryId;
@@ -32,7 +34,7 @@ public class InventorySlotPacket extends DataPacket {
         this.reset();
         this.putUnsignedVarInt(this.inventoryId);
         this.putUnsignedVarInt(this.slot);
-        if (protocol >= 407) {
+        if (protocol >= 407 && protocol < ProtocolInfo.v1_16_220) {
             this.putVarInt(networkId);
         }
         this.putSlot(protocol, this.item);

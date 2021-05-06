@@ -75,9 +75,13 @@ public interface ItemID {
     int DIAMOND_LEGGINGS = 312;
     int DIAMOND_BOOTS = 313;
     int GOLD_HELMET = 314;
+    int GOLDEN_HELMET = 314;
     int GOLD_CHESTPLATE = 315;
+    int GOLDEN_CHESTPLATE = 315;
     int GOLD_LEGGINGS = 316;
+    int GOLDEN_LEGGINGS = 316;
     int GOLD_BOOTS = 317;
+    int GOLDEN_BOOTS = 317;
     int FLINT = 318;
     int RAW_PORKCHOP = 319;
     int COOKED_PORKCHOP = 320;
@@ -157,6 +161,7 @@ public interface ItemID {
     int WRITTEN_BOOK = 387;
     int EMERALD = 388;
     int ITEM_FRAME = 389;
+    int FRAME = 389;
     int FLOWER_POT = 390;
     int CARROT = 391;
     int CARROTS = 391;
@@ -166,6 +171,7 @@ public interface ItemID {
     int BAKED_POTATOES = 393;
     int POISONOUS_POTATO = 394;
     int EMPTY_MAP = 395;
+    int EMPTYMAP = 395;
     int GOLDEN_CARROT = 396;
     int SKULL = 397;
     int CARROTONASTICK = 398;
@@ -192,6 +198,7 @@ public interface ItemID {
     int LEATHER_HORSE_ARMOR = 416;
     int IRON_HORSE_ARMOR = 417;
     int GOLD_HORSE_ARMOR = 418;
+    int GOLDEN_HORSE_ARMOR = 418;
     int DIAMOND_HORSE_ARMOR = 419;
     int LEAD = 420;
     int NAME_TAG = 421;
@@ -242,6 +249,7 @@ public interface ItemID {
     int HEART_OF_THE_SEA = 467;
     int SCUTE = 468;
     int TURTLE_SHELL = 469;
+    int TURTLE_HELMET = 469;
     int PHANTOM_MEMBRANE = 470;
     int CROSSBOW = 471;
     int SPRUCE_SIGN = 472;

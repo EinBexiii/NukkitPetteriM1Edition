@@ -1,9 +1,7 @@
 package cn.nukkit;
 
-import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.utils.ServerKiller;
 import com.google.common.base.Preconditions;
-import io.netty.util.ResourceLeakDetector;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Log4J2LoggerFactory;
 import lombok.extern.log4j.Log4j2;
@@ -39,10 +37,6 @@ public class Nukkit {
     public static final String NUKKIT = "Nukkit PetteriM1 Edition";
     public final static Properties GIT_INFO = getGitInfo();
     public final static String VERSION = getVersion();
-    public final static String API_VERSION = "CUSTOM";
-    public final static String CODENAME = "On My Way";
-    public final static String MINECRAFT_VERSION = ProtocolInfo.MINECRAFT_VERSION;
-    public final static String MINECRAFT_VERSION_NETWORK = ProtocolInfo.MINECRAFT_VERSION_NETWORK;
     public final static String PATH = System.getProperty("user.dir") + '/';
     public final static String DATA_PATH = System.getProperty("user.dir") + '/';
     public final static String PLUGIN_PATH = DATA_PATH + "plugins";
@@ -65,7 +59,7 @@ public class Nukkit {
         if (args.length > 0 && args[0].equalsIgnoreCase("-debug")) {
             debug = true;
             InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
-            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
+            //ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
             System.out.print("Debug stuff enabled!\n");
             System.out.print("Do you want to skip loading plugins? (yes/no) ");
             loadPlugins = !new Scanner(System.in).nextLine().toLowerCase().startsWith("y");

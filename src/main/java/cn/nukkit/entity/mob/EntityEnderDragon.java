@@ -51,6 +51,7 @@ public class EntityEnderDragon extends EntityFlyingMob implements EntityBoss {
 
         this.fireProof = true;
         this.setMaxHealth(200);
+        this.setDataFlag(DATA_FLAGS, DATA_FLAG_FIRE_IMMUNE, true);
     }
 
     @Override
@@ -131,7 +132,7 @@ public class EntityEnderDragon extends EntityFlyingMob implements EntityBoss {
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = this.dataProperties;
+        addEntity.metadata = this.dataProperties.clone();
         addEntity.attributes = new Attribute[]{Attribute.getAttribute(Attribute.MAX_HEALTH).setMaxValue(200).setValue(200)};
         return addEntity;
     }

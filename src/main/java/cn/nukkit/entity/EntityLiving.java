@@ -54,7 +54,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
 
     protected float movementSpeed = 0.1f;
 
-    protected int turtleTicks = 200;
+    protected int turtleTicks = 0;
 
     private boolean blocking = false;
 
@@ -175,7 +175,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
         boolean blocked = (normalizedVector.x * direction.x) + (normalizedVector.z * direction.z) < 0.0;
         boolean knockBack = !(damager instanceof EntityProjectile);
         EntityDamageBlockedEvent event = new EntityDamageBlockedEvent(this, source, knockBack, true);
-        if (!blocked || !source.canBeReducedByArmor()/* || damager instanceof EntityProjectile && ((EntityProjectile) damager).getPierceLevel() > 0*/) {
+        if (!blocked || !source.canBeReducedByArmor() || damager instanceof EntityProjectile && ((EntityProjectile) damager).piercing > 0) {
             event.setCancelled();
         }
 
@@ -191,7 +191,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
             ((EntityLiving) damager).knockBack(this, 0, deltaX, deltaZ);
         }
 
-        onBlock(damager, event.getAnimation(), source.getFinalDamage());
+        onBlock(damager, event.getAnimation(), source.getDamage());
         return true;
     }
 
@@ -274,26 +274,25 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
         if (Timings.livingEntityBaseTickTimer != null) Timings.livingEntityBaseTickTimer.startTiming();
 
         boolean inWater = this.isSubmerged();
-        boolean isBreathing = !inWater;
-        if (this instanceof Player && (((Player) this).isCreative() || ((Player) this).isSpectator())) {
-            isBreathing = true;
-        }
 
-        if (this instanceof Player) {
-            if (!isBreathing && ((Player) this).getInventory().getHelmetFast() instanceof ItemTurtleShell) {
-                if (turtleTicks > 0) {
-                    isBreathing = true;
-                    turtleTicks--;
-                }
-            } else {
+        if (this instanceof Player && !this.closed) {
+            Player p = (Player) this;
+            boolean isBreathing = !inWater;
+
+            if (isBreathing && p.getInventory().getHelmetFast() instanceof ItemTurtleShell) {
                 turtleTicks = 200;
+            } else if (turtleTicks > 0) {
+                isBreathing = true;
+                turtleTicks--;
             }
-        }
 
-        // HACK!
-        if (this instanceof Player) {
-            if (((Player) this).protocol <= 282) {
-                if (((Player) this).protocol <= 201) {
+            if (p.isCreative() || p.isSpectator()) {
+                isBreathing = true;
+            }
+
+            // HACK!
+            if (p.protocol <= 282) {
+                if (p.protocol <= 201) {
                     this.setDataFlagSelfOnly(DATA_FLAGS, 33, isBreathing);
                 } else {
                     this.setDataFlagSelfOnly(DATA_FLAGS, 34, isBreathing);
@@ -315,11 +314,11 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
                 this.resetFallDistance();
             }
 
-            if (!this.hasEffect(Effect.WATER_BREATHING) && inWater) {
+            if (inWater && !this.hasEffect(Effect.WATER_BREATHING)) {
                 if (this instanceof EntitySwimming || this.isDrowned || (this instanceof Player && (((Player) this).isCreative() || ((Player) this).isSpectator()))) {
                     this.setAirTicks(400);
                 } else {
-                    if (turtleTicks == 0 || turtleTicks == 200) {
+                    if (turtleTicks == 0) {
                         hasUpdate = true;
                         int airTicks = this.getAirTicks() - tickDiff;
 
@@ -364,10 +363,10 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
                             this.level.addParticle(new BubbleParticle(this));
                             this.setMotion(this.getMotion().add(0, -0.3, 0));
                         }
-                    } else if (block == Block.SOUL_SAND && this.isInsideOfWater()) {
+                    } /*else if (block == Block.SOUL_SAND && this.isInsideOfWater()) {
                         this.level.addParticle(new BubbleParticle(this));
                         this.setMotion(this.getMotion().add(0, 0.3, 0));
-                    }
+                    }*/
                 }
             }
 
@@ -495,7 +494,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
 
     public void setBlocking(boolean value) {
         this.blocking = value;
-        this.setDataFlag(DATA_FLAGS, DATA_FLAG_BLOCKING, value);
+        this.setDataFlag(DATA_FLAGS_EXTENDED, DATA_FLAG_BLOCKING, value);
     }
 
     public boolean dropsOnNaturalDeath() {

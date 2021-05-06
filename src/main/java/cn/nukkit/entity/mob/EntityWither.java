@@ -26,6 +26,11 @@ public class EntityWither extends EntityFlyingMob implements EntityBoss, EntityS
 
     public static final int NETWORK_ID = 52;
 
+    /**
+        Whether the wither is exploded and dying
+     */
+    private boolean exploded;
+
     public EntityWither(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
     }
@@ -142,7 +147,7 @@ public class EntityWither extends EntityFlyingMob implements EntityBoss, EntityS
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = this.dataProperties;
+        addEntity.metadata = this.dataProperties.clone();
         addEntity.attributes = new Attribute[]{Attribute.getAttribute(Attribute.MAX_HEALTH).setMaxValue(witherMaxHealth()).setValue(witherMaxHealth())};
         return addEntity;
     }
@@ -173,7 +178,8 @@ public class EntityWither extends EntityFlyingMob implements EntityBoss, EntityS
             return;
         }
 
-        if (this.lastDamageCause != null && EntityDamageEvent.DamageCause.SUICIDE != this.lastDamageCause.getCause()) {
+        if (!this.exploded && this.lastDamageCause != null && EntityDamageEvent.DamageCause.SUICIDE != this.lastDamageCause.getCause()) {
+            this.exploded = true;
             this.explode();
         }
 

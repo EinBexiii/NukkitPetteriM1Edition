@@ -9,6 +9,8 @@ import lombok.ToString;
 @ToString
 public class StartGamePacket extends DataPacket {
 
+    public static final byte NETWORK_ID = ProtocolInfo.START_GAME_PACKET;
+
     public static final int GAME_PUBLISH_SETTING_NO_MULTI_PLAY = 0;
     public static final int GAME_PUBLISH_SETTING_INVITE_ONLY = 1;
     public static final int GAME_PUBLISH_SETTING_FRIENDS_ONLY = 2;
@@ -17,7 +19,7 @@ public class StartGamePacket extends DataPacket {
 
     @Override
     public byte pid() {
-        return ProtocolInfo.START_GAME_PACKET;
+        return NETWORK_ID;
     }
 
     public String version;
@@ -184,7 +186,13 @@ public class StartGamePacket extends DataPacket {
         this.putBoolean(this.isTrial);
         if (protocol >= 388) {
             if (protocol >= ProtocolInfo.v1_16_100) {
-                this.putVarInt(this.isMovementServerAuthoritative ? 1 : 0); // 2 - rewind
+                if (protocol >= ProtocolInfo.v1_16_210) {
+                    this.putUnsignedVarInt(this.isMovementServerAuthoritative ? 1 : 0); // 2 - rewind
+                    this.putVarInt(0); // RewindHistorySize
+                    this.putBoolean(false); // isServerAuthoritativeBlockBreaking
+                } else {
+                    this.putVarInt(this.isMovementServerAuthoritative ? 1 : 0); // 2 - rewind
+                }
             } else {
                 this.putBoolean(this.isMovementServerAuthoritative);
             }
@@ -204,7 +212,10 @@ public class StartGamePacket extends DataPacket {
             if (protocol == 354 && version != null && version.startsWith("1.11.4")) {
                 this.putBoolean(this.isOnlySpawningV1Villagers);
             } else if (protocol >= 407) {
-                this.putBoolean(false);
+                this.putBoolean(false); // isInventoryServerAuthoritative
+                if (protocol >= ProtocolInfo.v1_16_230_50) {
+                    this.putString(""); // ??
+                }
             }
         }
     }

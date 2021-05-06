@@ -1,10 +1,15 @@
 package cn.nukkit.utils;
 
+import cn.nukkit.block.Block;
 import cn.nukkit.entity.Attribute;
 import cn.nukkit.entity.data.Skin;
-import cn.nukkit.item.*;
+import cn.nukkit.item.Item;
+import cn.nukkit.item.ItemDurable;
+import cn.nukkit.item.ItemID;
+import cn.nukkit.item.RuntimeItems;
 import cn.nukkit.level.GameRule;
 import cn.nukkit.level.GameRules;
+import cn.nukkit.level.GlobalBlockPalette;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.BlockVector3;
 import cn.nukkit.math.Vector3f;
@@ -12,8 +17,13 @@ import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.nbt.tag.StringTag;
+import cn.nukkit.network.LittleEndianByteBufInputStream;
+import cn.nukkit.network.LittleEndianByteBufOutputStream;
 import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.network.protocol.types.EntityLink;
+import io.netty.buffer.AbstractByteBufAllocator;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
 
 import java.io.IOException;
@@ -22,6 +32,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
+ * BinaryStream
+ *
  * @author MagicDroidX
  * Nukkit Project
  */
@@ -280,6 +292,9 @@ public class BinaryStream {
                 this.putString(skin.getGeometryData());
             }
         } else {
+            if (protocol >= ProtocolInfo.v1_16_210) {
+                this.putString(skin.getPlayFabId());
+            }
             this.putString(skin.getSkinResourcePatch());
             this.putImage(skin.getSkinData());
 
@@ -350,6 +365,9 @@ public class BinaryStream {
     public Skin getSkin(int protocol) { // Can be used only with protocol >= 388
         Skin skin = new Skin();
         skin.setSkinId(this.getString());
+        if (protocol >= ProtocolInfo.v1_16_210) {
+            skin.setPlayFabId(this.getString());
+        }
         skin.setSkinResourcePatch(this.getString());
         skin.setSkinData(this.getImage());
 
@@ -398,11 +416,17 @@ public class BinaryStream {
         return skin;
     }
 
+    private static final String NukkitPetteriM1EditionTag = "NukkitPetteriM1Edition";
+
     public Item getSlot() {
         return this.getSlot(ProtocolInfo.CURRENT_PROTOCOL);
     }
 
     public Item getSlot(int protocolId) {
+        if (protocolId >= ProtocolInfo.v1_16_220) {
+            return getSlotInternal(protocolId);
+        }
+
         int id = this.getVarInt();
         if (id == 0) {
             return Item.get(0, 0, 0);
@@ -467,6 +491,38 @@ public class BinaryStream {
             canDestroy[i] = this.getString();
         }
 
+        try {
+            if (protocolId < ProtocolInfo.v1_16_0 && nbt.length > 0) {
+                CompoundTag tag = Item.parseCompoundTag(nbt.clone());
+                if (tag.contains(NukkitPetteriM1EditionTag)) {
+                    int originalID = tag.getCompound(NukkitPetteriM1EditionTag).getInt("OriginalID");
+                    if ((id == Item.INFO_UPDATE && originalID >= Item.SUSPICIOUS_STEW) ||
+                            (id == Item.DIAMOND_SWORD && originalID == Item.NETHERITE_SWORD) ||
+                            (id == Item.DIAMOND_SHOVEL && originalID == Item.NETHERITE_SHOVEL) ||
+                            (id == Item.DIAMOND_PICKAXE && originalID == Item.NETHERITE_PICKAXE) ||
+                            (id == Item.DIAMOND_AXE && originalID == Item.NETHERITE_AXE) ||
+                            (id == Item.DIAMOND_HOE && originalID == Item.NETHERITE_HOE) ||
+                            (id == Item.DIAMOND_HELMET && originalID == Item.NETHERITE_HELMET) ||
+                            (id == Item.DIAMOND_CHESTPLATE && originalID == Item.NETHERITE_CHESTPLATE) ||
+                            (id == Item.DIAMOND_LEGGINGS && originalID == Item.NETHERITE_LEGGINGS) ||
+                            (id == Item.DIAMOND_BOOTS && originalID == Item.NETHERITE_BOOTS) ||
+                            (id == Item.CARROT_ON_A_STICK && originalID == Item.WARPED_FUNGUS_ON_A_STICK) ||
+                            (id == Item.RECORD_13 && originalID == Item.RECORD_PIGSTEP)) {
+                        id = originalID;
+                    }
+
+                    tag.remove(NukkitPetteriM1EditionTag);
+                    if (tag.isEmpty()) {
+                        nbt = new byte[0];
+                    } else {
+                        nbt = NBTIO.write(tag, ByteOrder.LITTLE_ENDIAN);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         Item item = Item.get(
                 id, data, cnt, nbt
         );
@@ -503,30 +559,197 @@ public class BinaryStream {
         return item;
     }
 
+    private Item getSlotInternal(int protocolId) {
+        int id = getVarInt();
+        if (id == 0) {
+            return Item.get(0, 0, 0);
+        }
+
+        int count = getLShort();
+        int damage = (int) getUnsignedVarInt();
+
+        int fullId = RuntimeItems.getRuntimeMapping(protocolId).getLegacyFullId(id);
+        id = RuntimeItems.getId(fullId);
+
+        /*boolean hasData = RuntimeItems.hasData(fullId); // Unnecessary when the damage is read from NBT
+        if (hasData) {
+            damage = RuntimeItems.getData(fullId);
+        }*/
+
+        if (getBoolean()) { // hasNetId
+            getVarInt(); // netId
+        }
+
+        getVarInt(); // blockRuntimeId
+
+        byte[] bytes = getByteArray();
+        ByteBuf buf = AbstractByteBufAllocator.DEFAULT.ioBuffer(bytes.length);
+        buf.writeBytes(bytes);
+
+        byte[] nbt = new byte[0];
+        String[] canPlace;
+        String[] canBreak;
+
+        try (LittleEndianByteBufInputStream stream = new LittleEndianByteBufInputStream(buf)) {
+            int nbtSize = stream.readShort();
+
+            CompoundTag compoundTag = null;
+            if (nbtSize > 0) {
+                compoundTag = NBTIO.read(stream, ByteOrder.LITTLE_ENDIAN);
+            } else if (nbtSize == -1) {
+                int tagCount = stream.readUnsignedByte();
+                if (tagCount != 1) throw new IllegalArgumentException("Expected 1 tag but got " + tagCount);
+                compoundTag = NBTIO.read(stream, ByteOrder.LITTLE_ENDIAN);
+            }
+
+            if (compoundTag != null && compoundTag.getAllTags().size() > 0) {
+                if (compoundTag.contains("Damage")) {
+                    damage = compoundTag.getInt("Damage");
+                    compoundTag.remove("Damage");
+                }
+                if (compoundTag.contains("__DamageConflict__")) {
+                    compoundTag.put("Damage", compoundTag.removeAndGet("__DamageConflict__"));
+                }
+                if (!compoundTag.isEmpty()) {
+                    nbt = NBTIO.write(compoundTag, ByteOrder.LITTLE_ENDIAN);
+                }
+            }
+
+            canPlace = new String[stream.readInt()];
+            for (int i = 0; i < canPlace.length; i++) {
+                canPlace[i] = stream.readUTF();
+            }
+
+            canBreak = new String[stream.readInt()];
+            for (int i = 0; i < canBreak.length; i++) {
+                canBreak[i] = stream.readUTF();
+            }
+
+            if (id == ItemID.SHIELD) {
+                stream.readLong();
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to read item user data", e);
+        } finally {
+            buf.release();
+        }
+
+        Item item = Item.get(id, damage, count, nbt);
+
+        if (canBreak.length > 0 || canPlace.length > 0) {
+            CompoundTag namedTag = item.getNamedTag();
+            if (namedTag == null) {
+                namedTag = new CompoundTag();
+            }
+
+            if (canBreak.length > 0) {
+                ListTag<StringTag> listTag = new ListTag<>("CanDestroy");
+                for (String blockName : canBreak) {
+                    listTag.add(new StringTag("", blockName));
+                }
+                namedTag.put("CanDestroy", listTag);
+            }
+
+            if (canPlace.length > 0) {
+                ListTag<StringTag> listTag = new ListTag<>("CanPlaceOn");
+                for (String blockName : canPlace) {
+                    listTag.add(new StringTag("", blockName));
+                }
+                namedTag.put("CanPlaceOn", listTag);
+            }
+
+            item.setNamedTag(namedTag);
+        }
+
+        return item;
+    }
+
     public void putSlot(Item item) {
         this.putSlot(ProtocolInfo.CURRENT_PROTOCOL, item);
     }
 
     public void putSlot(int protocolId, Item item) {
+        this.putSlot(protocolId, item, false);
+    }
+
+    public void putSlot(int protocolId, Item item, boolean crafting) {
+        if (protocolId >= ProtocolInfo.v1_16_220) {
+            putSlotInternal(protocolId, item, crafting);
+            return;
+        }
+
         if (item == null || item.getId() == 0) {
             this.putVarInt(0);
             return;
         }
 
         int networkId = item.getId();
+
+        // Multiversion: Replace unsupported items
+        boolean saveOriginalID = false;
+        if (!crafting) {
+            if (protocolId < ProtocolInfo.v1_16_0) {
+                if (networkId >= Item.LODESTONECOMPASS) {
+                    saveOriginalID = true;
+                    switch (networkId) {
+                        case Item.NETHERITE_SWORD:
+                            networkId = Item.DIAMOND_SWORD;
+                            break;
+                        case Item.NETHERITE_SHOVEL:
+                            networkId = Item.DIAMOND_SHOVEL;
+                            break;
+                        case Item.NETHERITE_PICKAXE:
+                            networkId = Item.DIAMOND_PICKAXE;
+                            break;
+                        case Item.NETHERITE_AXE:
+                            networkId = Item.DIAMOND_AXE;
+                            break;
+                        case Item.NETHERITE_HOE:
+                            networkId = Item.DIAMOND_HOE;
+                            break;
+                        case Item.NETHERITE_HELMET:
+                            networkId = Item.DIAMOND_HELMET;
+                            break;
+                        case Item.NETHERITE_CHESTPLATE:
+                            networkId = Item.DIAMOND_CHESTPLATE;
+                            break;
+                        case Item.NETHERITE_LEGGINGS:
+                            networkId = Item.DIAMOND_LEGGINGS;
+                            break;
+                        case Item.NETHERITE_BOOTS:
+                            networkId = Item.DIAMOND_BOOTS;
+                            break;
+                        case Item.WARPED_FUNGUS_ON_A_STICK:
+                            networkId = Item.CARROT_ON_A_STICK;
+                            break;
+                        case Item.RECORD_PIGSTEP:
+                            networkId = Item.RECORD_13;
+                            break;
+                        default:
+                            networkId = Item.INFO_UPDATE;
+                            break;
+                    }
+                } else {
+                    if (protocolId < ProtocolInfo.v1_14_0) {
+                        if (networkId == Item.HONEYCOMB || networkId == Item.HONEY_BOTTLE) {
+                            saveOriginalID = true;
+                            networkId = Item.INFO_UPDATE;
+                        } else if (protocolId < ProtocolInfo.v1_13_0) {
+                            if (networkId == Item.SUSPICIOUS_STEW) {
+                                saveOriginalID = true;
+                                networkId = Item.INFO_UPDATE;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         boolean clearData = false;
         if (protocolId >= ProtocolInfo.v1_16_100) {
             int networkFullId = RuntimeItems.getRuntimeMapping(protocolId).getNetworkFullId(item);
             clearData = RuntimeItems.hasData(networkFullId);
             networkId = RuntimeItems.getNetworkId(networkFullId);
-        }
-
-        // Multiversion: Replace unsupported items
-        // TODO: Send the original item data in nbt and read it from there in getSlot, replace netherite items with diamond items for < 1.16
-        if (protocolId < ProtocolInfo.v1_14_0 && (networkId == Item.HONEYCOMB || (networkId == Item.SUSPICIOUS_STEW && protocolId < ProtocolInfo.v1_13_0))) {
-            networkId = Item.INFO_UPDATE;
-        } else if (protocolId < ProtocolInfo.v1_16_0 && networkId >= Item.LODESTONECOMPASS) {
-            networkId = Item.INFO_UPDATE;
         }
 
         this.putVarInt(networkId);
@@ -551,7 +774,20 @@ public class BinaryStream {
 
         this.putVarInt(auxValue);
 
-        if (item.hasCompoundTag() || (isDurable && protocolId >= ProtocolInfo.v1_12_0)) {
+        // Hack: fix recipe list not displaying some items
+        if (crafting) {
+            this.putLShort(0);
+            this.putVarInt(0);
+            this.putVarInt(0);
+            if (item.getId() == ItemID.SHIELD && protocolId >= ProtocolInfo.v1_12_0) {
+                this.putVarLong(0);
+            }
+            return;
+        }
+
+        if (item.hasCompoundTag() ||
+                (isDurable && protocolId >= ProtocolInfo.v1_12_0) ||
+                (saveOriginalID && protocolId >= ProtocolInfo.v1_12_0)) {
             if (protocolId < ProtocolInfo.v1_12_0) {
                 byte[] nbt = item.getCompoundTag();
                 this.putLShort(nbt.length);
@@ -571,6 +807,11 @@ public class BinaryStream {
                     }
                     if (isDurable) {
                         tag.putInt("Damage", item.getDamage());
+                    }
+
+                    if (saveOriginalID) {
+                        tag.putCompound(NukkitPetteriM1EditionTag,
+                                new CompoundTag().putInt("OriginalID", item.getId()));
                     }
 
                     this.putLShort(0xffff);
@@ -618,6 +859,86 @@ public class BinaryStream {
 
         int count = this.getVarInt();
         return Item.get(id, damage, count);
+    }
+
+    private void putSlotInternal(int protocolId, Item item, boolean instanceItem) {
+        if (item == null || item.getId() == 0) {
+            putByte((byte) 0);
+            return;
+        }
+
+        int networkFullId = RuntimeItems.getRuntimeMapping(protocolId).getNetworkFullId(item);
+        int networkId = RuntimeItems.getNetworkId(networkFullId);
+
+        putVarInt(networkId);
+        putLShort(item.getCount());
+
+        boolean useLegacyData = false;
+        if (item.getId() > 256) { // Not a block
+            if (item instanceof ItemDurable || !RuntimeItems.hasData(networkFullId)) {
+                useLegacyData = true;
+            }
+        }
+        putUnsignedVarInt(useLegacyData ? item.getDamage() : 0);
+
+        if (!instanceItem) {
+            putBoolean(true);
+            putVarInt(0); //TODO
+        }
+
+        Block block = item.getBlockUnsafe();
+        int runtimeId = block == null ? 0 : GlobalBlockPalette.getOrCreateRuntimeId(protocolId, block.getId(), block.getDamage());
+        putVarInt(runtimeId);
+
+        ByteBuf userDataBuf = ByteBufAllocator.DEFAULT.ioBuffer();
+        try (LittleEndianByteBufOutputStream stream = new LittleEndianByteBufOutputStream(userDataBuf)) {
+            if (item.getDamage() != 0) {
+                byte[] nbt = item.getCompoundTag();
+                CompoundTag tag;
+                if (nbt == null || nbt.length == 0) {
+                    tag = new CompoundTag();
+                } else {
+                    tag = NBTIO.read(nbt, ByteOrder.LITTLE_ENDIAN);
+                }
+                if (tag.contains("Damage")) {
+                    tag.put("__DamageConflict__", tag.removeAndGet("Damage"));
+                }
+                tag.putInt("Damage", item.getDamage());
+                stream.writeShort(-1);
+                stream.writeByte(1); // Hardcoded in current version
+                stream.write(NBTIO.write(tag, ByteOrder.LITTLE_ENDIAN));
+            } else if (item.hasCompoundTag()) {
+                stream.writeShort(-1);
+                stream.writeByte(1); // Hardcoded in current version
+                stream.write(item.getCompoundTag());
+            } else {
+                userDataBuf.writeShortLE(0);
+            }
+
+            List<String> canPlaceOn = extractStringList(item, "CanPlaceOn");
+            stream.writeInt(canPlaceOn.size());
+            for (String string : canPlaceOn) {
+                stream.writeUTF(string);
+            }
+
+            List<String> canDestroy = extractStringList(item, "CanDestroy");
+            stream.writeInt(canDestroy.size());
+            for (String string : canDestroy) {
+                stream.writeUTF(string);
+            }
+
+            if (item.getId() == ItemID.SHIELD) {
+                stream.writeLong(0);
+            }
+
+            byte[] bytes = new byte[userDataBuf.readableBytes()];
+            userDataBuf.readBytes(bytes);
+            putByteArray(bytes);
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to write item user data", e);
+        } finally {
+            userDataBuf.release();
+        }
     }
 
     public void putRecipeIngredient(int protocolId, Item ingredient) {

@@ -81,7 +81,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_DISPLAY_ITEM = 16; //int (id | (data << 16))
     public static final int DATA_DISPLAY_OFFSET = 17; //int
     public static final int DATA_HAS_DISPLAY = 18; //byte (must be 1 for minecart to show block inside)
-    public static final int DATA_ENDERMAN_HELD_RUNTIME_ID = 23; //short
+    public static final int DATA_ENDERMAN_HELD_RUNTIME_ID = 23; //int (block runtime id)
     public static final int DATA_ENTITY_AGE = 24; //short
     public static final int DATA_PLAYER_FLAGS = 26; //byte
     public static final int DATA_PLAYER_BED_POSITION = 28; //block coords
@@ -111,6 +111,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_RIDER_ROTATION_LOCKED = 57; //byte
     public static final int DATA_RIDER_MAX_ROTATION = 58; //float
     public static final int DATA_RIDER_MIN_ROTATION = 59; //float
+    public static final int DATA_RIDER_ROTATION_OFFSET = 60; //1.16.210+
     public static final int DATA_AREA_EFFECT_CLOUD_RADIUS = 60; //float
     public static final int DATA_AREA_EFFECT_CLOUD_WAITING = 61; //int
     public static final int DATA_AREA_EFFECT_CLOUD_PARTICLE_ID = 62; //int
@@ -126,9 +127,9 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_LIMITED_LIFE = 77;
     public static final int DATA_ARMOR_STAND_POSE_INDEX = 78; // int
     public static final int DATA_ENDER_CRYSTAL_TIME_OFFSET = 79; // int
-    public static final int DATA_ALWAYS_SHOW_NAMETAG = 80; // byte
+    public static final int DATA_ALWAYS_SHOW_NAMETAG = 80; // byte, 81 on 1.16.210+
     public static final int DATA_COLOR_2 = 81; // byte
-    public static final int DATA_SCORE_TAG = 83; //String
+    public static final int DATA_SCORE_TAG = 83; //String, 84 on 1.16.210+
     public static final int DATA_BALLOON_ATTACHED_ENTITY = 84; // long
     public static final int DATA_PUFFERFISH_SIZE = 85;
     public static final int DATA_FLAGS_EXTENDED = 91, DATA_FLAGS2 = DATA_FLAGS_EXTENDED; //long (extended data flags)
@@ -148,6 +149,8 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_HITBOX = 117;
     public static final int DATA_IS_BUOYANT = 118;
     public static final int DATA_BUOYANCY_DATA = 119;
+    public static final int DATA_FREEZING_EFFECT_STRENGTH = 120; //1.16.210+
+    public static final int DATA_GOAT_HORN_COUNT = 122; //1.16.210+
 
     // Flags
     public static final int DATA_FLAG_ONFIRE = 0;
@@ -243,6 +246,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_FLAG_CELEBRATING = 92;
     public static final int DATA_FLAG_ADMIRING = 93;
     public static final int DATA_FLAG_CELEBRATING_SPECIAL = 94;
+    public static final int DATA_FLAG_RAM_ATTACK = 96; //1.16.210+
 
     public static final double STEP_CLIP_MULTIPLIER = 0.4;
 
@@ -983,7 +987,7 @@ public abstract class Entity extends Location implements Metadatable {
                 player.dataPacket(pkk);
             }
 
-            if (this.server.vanillaBB && this instanceof EntityBoss) {
+            if (this.server.vanillaBossBar && this instanceof EntityBoss) {
                 BossEventPacket pkBoss = new BossEventPacket();
                 pkBoss.bossEid = this.id;
                 pkBoss.type = BossEventPacket.TYPE_SHOW;
@@ -1008,7 +1012,7 @@ public abstract class Entity extends Location implements Metadatable {
         addEntity.speedX = (float) this.motionX;
         addEntity.speedY = (float) this.motionY;
         addEntity.speedZ = (float) this.motionZ;
-        addEntity.metadata = this.dataProperties;
+        addEntity.metadata = this.dataProperties.clone();
 
         addEntity.links = new EntityLink[this.passengers.size()];
         for (int i = 0; i < addEntity.links.length; i++) {
@@ -1652,7 +1656,7 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public void resetFallDistance() {
-        this.highestPosition = 0;
+        this.highestPosition = this.y;
     }
 
     protected void updateFallState(boolean onGround) {
@@ -1674,21 +1678,21 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public void fall(float fallDistance) {
-        if (!this.hasEffect(Effect.SLOW_FALLING)) {
-            float damage = (float) Math.floor(fallDistance - 3 - (this.hasEffect(Effect.JUMP) ? this.getEffect(Effect.JUMP).getAmplifier() + 1 : 0));
+        if (fallDistance > 0.75) {
+            if (!this.hasEffect(Effect.SLOW_FALLING)) {
+                float damage = (float) Math.floor(fallDistance - 3 - (this.hasEffect(Effect.JUMP) ? this.getEffect(Effect.JUMP).getAmplifier() + 1 : 0));
 
-            Block down = this.level.getBlock(this.floor().down());
-            if (down.getId() == BlockID.HAY_BALE) {
-                damage -= (damage * 0.8f);
-            }
-
-            if (damage > 0) {
-                if (!this.isPlayer || level.getGameRules().getBoolean(GameRule.FALL_DAMAGE)) {
-                    this.attack(new EntityDamageEvent(this, DamageCause.FALL, damage));
+                Block down = this.level.getBlock(this.floor().down());
+                if (down.getId() == BlockID.HAY_BALE) {
+                    damage -= (damage * 0.8f);
                 }
-            }
 
-            if (fallDistance > 0.75) {
+                if (damage > 0) {
+                    if (!this.isPlayer || level.getGameRules().getBoolean(GameRule.FALL_DAMAGE)) {
+                        this.attack(new EntityDamageEvent(this, DamageCause.FALL, damage));
+                    }
+                }
+
                 if (down.getId() == BlockID.FARMLAND) {
                     Event ev;
 
@@ -1883,7 +1887,7 @@ public abstract class Entity extends Location implements Metadatable {
             AxisAlignedBB bb = this.boundingBox.clone();
             bb.minY -= 0.75;
 
-            this.onGround = this.level.getCollisionBlocks(bb).length > 0;
+            this.onGround = this.level.hasCollisionBlocks(bb);
         }
         this.isCollided = this.onGround;
         this.updateFallState(this.onGround);
@@ -2319,18 +2323,24 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public boolean setDataProperty(EntityData data) {
-        return setDataProperty(data, true);
+        return this.setDataProperty(data, true);
     }
 
     public boolean setDataProperty(EntityData data, boolean send) {
-        if (!Objects.equals(data, this.dataProperties.get(data.getId()))) {
-            this.dataProperties.put(data);
-            if (send) {
-                this.sendData(this.hasSpawned.values().toArray(new Player[0]), new EntityMetadata().put(this.dataProperties.get(data.getId())));
-            }
-            return true;
+        if (Objects.equals(data, this.dataProperties.get(data.getId()))) {
+            return false;
         }
-        return false;
+
+        this.dataProperties.put(data);
+        if (send) {
+            EntityMetadata metadata = new EntityMetadata();
+            metadata.put(this.dataProperties.get(data.getId()));
+            if (data.getId() == DATA_FLAGS2) {
+                metadata.put(this.dataProperties.get(DATA_FLAGS));
+            }
+            this.sendData(this.hasSpawned.values().toArray(new Player[0]), metadata);
+        }
+        return true;
     }
 
     public boolean setDataPropertyAndSendOnlyToSelf(EntityData data) {
