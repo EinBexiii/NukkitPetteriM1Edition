@@ -214,6 +214,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     protected boolean checkMovement = true;
 
+    private final Queue<DataPacket> packetQueue = new ConcurrentLinkedDeque<>();
+
     private PermissibleBase perm;
     /**
      * Option to hide admin permissions from player list tab in client.
@@ -271,11 +273,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public int ticksSinceLastRest;
     private boolean inSoulSand;
     private float soulSpeed = 1;
-
     @Getter
     @Setter
     protected boolean canDamage = true;
-    
+
     /**
      * Packets that can be received before the player has logged in
      */
@@ -1036,7 +1037,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         return true;
     }
 
-    @Deprecated
     public boolean batchDataPacket(DataPacket packet) {
         if (packet instanceof BatchPacket) {
             return this.directDataPacket(packet); // We don't want to batch a batched packet
@@ -1074,6 +1074,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
      * @return packet successfully sent
      */
     public boolean dataPacket(DataPacket packet) {
+        if (this.protocol >= ProtocolInfo.v1_16_100) {
+            return batchDataPacket(packet);
+        }
+
         if (!this.connected) {
             return false;
         }
@@ -1093,13 +1097,13 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 log.trace("Outbound {}: {}", this.getName(), packet);
             }
 
-            this.interfaz.putPacket(this, packet, false, true);
+            this.interfaz.putPacket(this, packet, false, false);
         }
         return true;
     }
 
     public int dataPacket(DataPacket packet, boolean needACK) {
-        return this.dataPacket(packet) ? 1 : 0;
+        return this.dataPacket(packet) ? 0 : -1;
     }
 
     /**
@@ -1140,7 +1144,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
     public int directDataPacket(DataPacket packet, boolean needACK) {
-        return this.dataPacket(packet) ? 1 : 0;
+        return this.directDataPacket(packet) ? 0 : -1;
     }
 
     /**
@@ -1874,9 +1878,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             this.motionX = this.motionY = this.motionZ = 0; // HACK: fix player knockback being messed up
 
             //if (currentTick % 2 == 0) {
-                if (!this.isSpectator()) {
-                    this.checkNearEntities();
-                }
+            if (!this.isSpectator()) {
+                this.checkNearEntities();
+            }
             //}
 
             this.entityBaseTick(tickDiff);
@@ -2038,6 +2042,16 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public void checkNetwork() {
         if (this.protocol < ProtocolInfo.v1_16_100 && !this.isOnline()) {
             return;
+        }
+
+        if (!this.packetQueue.isEmpty()) {
+            List<DataPacket> toBatch = new ArrayList<>();
+            DataPacket packet;
+            while ((packet = this.packetQueue.poll()) != null) {
+                toBatch.add(packet);
+            }
+            DataPacket[] arr = toBatch.toArray(new DataPacket[0]);
+            this.server.batchPackets(new Player[]{this}, arr, false);
         }
 
         if (!this.isOnline()) {
@@ -4169,7 +4183,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             if (notify && !reason.isEmpty()) {
                 DisconnectPacket pk = new DisconnectPacket();
                 pk.message = reason;
-                this.dataPacket(pk); // Batch the packet here to make sure it gets thru before the connection is closed
+                this.quickBatch(pk); // Batch the packet here to make sure it gets thru before the connection is closed
             }
 
             this.connected = false;
@@ -4550,7 +4564,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             level++;
             most = calculateRequireExperience(level);
         }
-
         PlayerExperienceChangeEvent event = new PlayerExperienceChangeEvent(this, this.getExperienceLevel(), this.getExperience(), added, level);
         this.server.getPluginManager().callEvent(event);
 
@@ -4838,7 +4851,12 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     protected void sendPlayStatus(int status, boolean immediate) {
         PlayStatusPacket pk = new PlayStatusPacket();
         pk.status = status;
-        this.dataPacket(pk);
+
+        if (immediate) {
+            this.directDataPacket(pk);
+        } else {
+            this.dataPacket(pk);
+        }
     }
 
     @Override

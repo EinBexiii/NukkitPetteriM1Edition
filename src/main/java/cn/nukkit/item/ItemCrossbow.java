@@ -136,8 +136,6 @@ public class ItemCrossbow extends ItemBow {
 
             nbt.putInt("KNOCK", enchant);
 
-            EntityShootBowEvent entityShootBowEvent = new EntityShootBowEvent(player, this, new EntityArrow(player.chunk, nbt, player, false), 3.5);
-
             EntityArrow arrow = new EntityArrow(player.chunk, nbt, player, false);
             if (this.hasEnchantment(Enchantment.ID_CROSSBOW_PIERCING)) {
                 arrow.piercing = 1;
