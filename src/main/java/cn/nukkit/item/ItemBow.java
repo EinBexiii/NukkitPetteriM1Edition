@@ -91,6 +91,10 @@ public class ItemBow extends ItemTool {
 
         double p = (double) ticksUsed / 20;
 
+        int enchant = player.getInventory().getItemInHand().hasEnchantment(Enchantment.ID_BOW_KNOCKBACK) ? player.getInventory().getItemInHand().getEnchantment(Enchantment.ID_BOW_KNOCKBACK).getLevel() : 0;
+
+        nbt.putInt("KNOCK", enchant);
+
         double f = Math.min((p * p + p * 2) / 3, 1) * 2.8;
         EntityShootBowEvent entityShootBowEvent = new EntityShootBowEvent(player, this, new EntityArrow(player.chunk, nbt, player, f == 2), f);
 

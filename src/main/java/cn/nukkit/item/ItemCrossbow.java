@@ -132,6 +132,10 @@ public class ItemCrossbow extends ItemBow {
                             .add(new FloatTag("", (player.yaw > 180 ? 360 : 0) - (float) player.yaw))
                             .add(new FloatTag("", (float) -player.pitch)));
 
+            int enchant = player.getInventory().getItemInHand().hasEnchantment(Enchantment.ID_BOW_KNOCKBACK) ? player.getInventory().getItemInHand().getEnchantment(Enchantment.ID_BOW_KNOCKBACK).getLevel() : 0;
+
+            nbt.putInt("KNOCK", enchant);
+
             EntityArrow arrow = new EntityArrow(player.chunk, nbt, player, false);
             if (this.hasEnchantment(Enchantment.ID_CROSSBOW_PIERCING)) {
                 arrow.piercing = 1;
