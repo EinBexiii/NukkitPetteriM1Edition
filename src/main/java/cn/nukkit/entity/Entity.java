@@ -1566,6 +1566,8 @@ public abstract class Entity extends Location implements Metadatable {
         entity.setSeatPosition(new Vector3f());
         updatePassengerPosition(entity);
 
+        // Avoid issues with anti fly
+        entity.resetFallDistance();
         return true;
     }
 
