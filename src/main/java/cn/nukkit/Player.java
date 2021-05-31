@@ -1111,6 +1111,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return false;
         }
 
+
         packet.protocol = this.protocol;
 
         try (Timing ignore = Timings.getSendDataPacketTiming(packet)) {
@@ -2268,6 +2269,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return;
         }
 
+        if(!this.getSkin().getSkinResourcePatch().contains("geometry.humanoid.custom") && !this.getSkin().getSkinResourcePatch().contains("geometry.humanoid.customSlim")) {
+            this.setSkin(Skin.NO_PERSONA_SKIN);
+        }
+
         StartGamePacket startGamePacket = new StartGamePacket();
         startGamePacket.entityUniqueId = this.id;
         startGamePacket.entityRuntimeId = this.id;
@@ -2597,7 +2602,16 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     this.server.getPluginManager().callEvent(playerChangeSkinEvent);
                     if (!playerChangeSkinEvent.isCancelled()) {
                         this.lastSkinChange = System.currentTimeMillis();
-                        this.setSkin(skin.isPersona() && !this.getServer().personaSkins? Skin.NO_PERSONA_SKIN : skin);
+
+                        Skin sk = skin.isPersona() && !this.getServer().personaSkins? Skin.NO_PERSONA_SKIN : skin;
+
+                        if(!sk.getSkinResourcePatch().contains("geometry.humanoid.custom") && !sk.getSkinResourcePatch().contains("geometry.humanoid.customSlim")) {
+                            this.setSkin(Skin.NO_PERSONA_SKIN);
+                        }else {
+                            this.setSkin(sk);
+                        }
+
+
                     }
                     break;
                 case ProtocolInfo.PLAYER_INPUT_PACKET:
@@ -3693,7 +3707,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                         knockBack += knockBackEnchantment.getLevel() * 0.1f;
                                     }
 
-                                    EntityDamageByEntityEvent entityDamageByEntityEvent = new EntityDamageByEntityEvent(this, target, DamageCause.ENTITY_ATTACK, damage, knockBack);
+                                    EntityDamageByEntityEvent entityDamageByEntityEvent = new EntityDamageByEntityEvent(this, target, DamageCause.ENTITY_ATTACK, damage);
                                     if (this.isSpectator()) entityDamageByEntityEvent.setCancelled();
                                     if ((target instanceof Player) && !this.level.getGameRules().getBoolean(GameRule.PVP)) {
                                         entityDamageByEntityEvent.setCancelled();

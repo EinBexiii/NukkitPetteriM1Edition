@@ -16,7 +16,7 @@
         <jline.version>3.12.1</jline.version>
         <netty.version>[4.1.47.Final,4.1.999.Final]</netty.version>
     </properties>
-    
+
     <distributionManagement>
         <repository>
             <id>rushnation-repo</id>
@@ -180,7 +180,26 @@
         <dependency>
             <groupId>io.sentry</groupId>
             <artifactId>sentry</artifactId>
-            <version>1.7.30</version>
+            <version>4.3.0</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.code.gson</groupId>
+                    <artifactId>gson</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry-log4j2</artifactId>
+            <version>4.3.0</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.sentry</groupId>
+                    <artifactId>sentry</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

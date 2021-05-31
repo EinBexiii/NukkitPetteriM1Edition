@@ -53,7 +53,7 @@ public class BugReportGenerator extends Thread {
     private void sentry() {
         Server.getInstance().getLogger().info("[BugReport] Sending a bug report ...");
 
-        Server.getInstance().sentry.getContext().clear();
+      //  Server.getInstance().sentry.getContext().clear();
 
         if (throwable != null) {
             boolean pluginError = false;
@@ -67,7 +67,7 @@ public class BugReportGenerator extends Thread {
                     }
                 }
             }
-            Server.getInstance().sentry.getContext().addTag("plugin_error", String.valueOf(pluginError));
+           // Server.getInstance().sentry.getContext().addTag("plugin_error", String.valueOf(pluginError));
         }
 
         StringBuilder plugins = new StringBuilder();
@@ -87,23 +87,23 @@ public class BugReportGenerator extends Thread {
 
         String cpuType = System.getenv("PROCESSOR_IDENTIFIER");
         OperatingSystemMXBean osMXBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        Server.getInstance().sentry.getContext().addExtra("Nukkit Version", Nukkit.getBranch() + '/' + Nukkit.VERSION.substring(4));
-        Server.getInstance().sentry.getContext().addExtra("Java Version", System.getProperty("java.vm.name") + " (" + System.getProperty("java.runtime.version") + ')');
-        Server.getInstance().sentry.getContext().addExtra("Host OS", osMXBean.getName() + '-' + osMXBean.getArch() + " [" + osMXBean.getVersion() + ']');
-        Server.getInstance().sentry.getContext().addExtra("Memory", getCount(osMXBean.getTotalPhysicalMemorySize(), true));
-        Server.getInstance().sentry.getContext().addExtra("CPU Type", cpuType == null ? "UNKNOWN" : cpuType);
-        Server.getInstance().sentry.getContext().addExtra("Available Cores", String.valueOf(osMXBean.getAvailableProcessors()));
-        Server.getInstance().sentry.getContext().addExtra("Players", Server.getInstance().getOnlinePlayersCount() + "/" + Server.getInstance().getMaxPlayers());
-        Server.getInstance().sentry.getContext().addExtra("Plugins", plugins.toString());
-        Server.getInstance().sentry.getContext().addTag("nukkit_version", Nukkit.VERSION);
-        Server.getInstance().sentry.getContext().addTag("branch", Nukkit.getBranch());
+        //Server.getInstance().sentry.getContext().addExtra("Nukkit Version", Nukkit.getBranch() + '/' + Nukkit.VERSION.substring(4));
+        //Server.getInstance().sentry.getContext().addExtra("Java Version", System.getProperty("java.vm.name") + " (" + System.getProperty("java.runtime.version") + ')');
+        //Server.getInstance().sentry.getContext().addExtra("Host OS", osMXBean.getName() + '-' + osMXBean.getArch() + " [" + osMXBean.getVersion() + ']');
+        //Server.getInstance().sentry.getContext().addExtra("Memory", getCount(osMXBean.getTotalPhysicalMemorySize(), true));
+        //Server.getInstance().sentry.getContext().addExtra("CPU Type", cpuType == null ? "UNKNOWN" : cpuType);
+        //Server.getInstance().sentry.getContext().addExtra("Available Cores", String.valueOf(osMXBean.getAvailableProcessors()));
+        //Server.getInstance().sentry.getContext().addExtra("Players", Server.getInstance().getOnlinePlayersCount() + "/" + Server.getInstance().getMaxPlayers());
+        //Server.getInstance().sentry.getContext().addExtra("Plugins", plugins.toString());
+        //Server.getInstance().sentry.getContext().addTag("nukkit_version", Nukkit.VERSION);
+        //Server.getInstance().sentry.getContext().addTag("branch", Nukkit.getBranch());
 
         if (throwable != null) {
-            Server.getInstance().sentry.getContext().addTag("watchdog", String.valueOf(false));
-            Server.getInstance().sentry.sendException(throwable);
+            //Server.getInstance().sentry.getContext().addTag("watchdog", String.valueOf(false));
+            //Server.getInstance().sentry.sendException(throwable);
         } else if (message != null) {
-            Server.getInstance().sentry.getContext().addTag("watchdog", String.valueOf(true));
-            Server.getInstance().sentry.sendMessage(message);
+            //Server.getInstance().sentry.getContext().addTag("watchdog", String.valueOf(true));
+            //Server.getInstance().sentry.sendMessage(message);
         } else {
             Server.getInstance().getLogger().error("[BugReport] Sending a bug report failed!");
         }

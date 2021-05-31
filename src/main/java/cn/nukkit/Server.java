@@ -78,7 +78,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParser;
 import io.netty.buffer.ByteBuf;
 import io.sentry.SentryClient;
-import io.sentry.SentryClientFactory;
+//import io.sentry.SentryClientFactory;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -460,7 +460,7 @@ public class Server {
 
         if (this.getPropertyBoolean("automatic-bug-report", true)) {
             ExceptionHandler.registerExceptionHandler();
-            this.sentry = SentryClientFactory.sentryClient("https://0e094ce5464f4663a0b521d61f4bfe54@o381665.ingest.sentry.io/5209314");
+            //this.sentry = SentryClientFactory.sentryClient("https://0e094ce5464f4663a0b521d61f4bfe54@o381665.ingest.sentry.io/5209314");
         }
 
         if (!new File(dataPath + "players/").exists() && this.shouldSavePlayerData) {

@@ -32,7 +32,7 @@ public abstract class BaseEntity extends EntityCreature implements EntityAgeable
     protected float moveMultiplier = 1.0f;
 
     protected Vector3 target = null;
-    protected Entity followTarget = null;
+    public Entity followTarget = null;
     protected int attackDelay = 0;
     private short inLoveTicks = 0;
 
