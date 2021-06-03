@@ -1742,24 +1742,21 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             else this.speed.setComponents(0, 0, 0);
         }
 
-        if (!revert && (this.isFoodEnabled() || this.getServer().getDifficulty() == 0)) {
-            if ((this.isSurvival() || this.isAdventure())) {
-
-                if (distance >= 0.05) {
-                    double jump = 0;
-                    double swimming = this.isInsideOfWater() ? 0.015 * distance : 0;
-                    if (swimming != 0) distance = 0;
-                    if (this.isSprinting()) {
-                        if (this.inAirTicks == 3 && swimming == 0) {
-                            jump = 0.7;
-                        }
-                        this.foodData.updateFoodExpLevel(0.06 * distance + jump + swimming);
-                    } else {
-                        if (this.inAirTicks == 3 && swimming == 0) {
-                            jump = 0.2;
-                        }
-                        this.foodData.updateFoodExpLevel(0.01 * distance + jump + swimming);
+        if (!revert && this.isFoodEnabled() && this.getServer().getDifficulty() > 0) {
+            if (distance >= 0.05) {
+                double jump = 0;
+                double swimming = this.isInsideOfWater() ? 0.015 * distance : 0;
+                if (swimming != 0) distance = 0;
+                if (this.isSprinting()) {
+                    if (this.inAirTicks == 3 && swimming == 0) {
+                        jump = 0.7;
                     }
+                    this.foodData.updateFoodExpLevel(0.06 * distance + jump + swimming);
+                } else {
+                    if (this.inAirTicks == 3 && swimming == 0) {
+                        jump = 0.2;
+                    }
+                    this.foodData.updateFoodExpLevel(0.01 * distance + jump + swimming);
                 }
             }
         }
@@ -1967,8 +1964,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
                 }
 
-                if (this.isSurvival() || this.isAdventure()) {
-                    if (this.foodData != null) this.foodData.update(tickDiff);
+                if (this.foodData != null) {
+                    this.foodData.update(tickDiff);
                 }
             }
         }
@@ -4831,6 +4828,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         pk.pitch = (float) pitch;
         pk.yaw = (float) yaw;
         pk.mode = mode;
+        pk.onGround = this.onGround;
 
         this.ySize = 0;
 
@@ -4852,6 +4850,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         pk.pitch = (float) pitch;
         pk.yaw = (float) yaw;
         pk.mode = mode;
+        pk.onGround = this.onGround;
 
         this.ySize = 0;
 
