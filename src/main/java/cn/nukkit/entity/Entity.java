@@ -9,6 +9,7 @@ import cn.nukkit.entity.mob.EntityCreeper;
 import cn.nukkit.event.Event;
 import cn.nukkit.event.entity.*;
 import cn.nukkit.event.entity.EntityDamageEvent.DamageCause;
+import cn.nukkit.event.player.PlayerConsumeTotemEvent;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.event.player.PlayerInteractEvent.Action;
 import cn.nukkit.event.player.PlayerTeleportEvent;
@@ -1126,24 +1127,29 @@ public abstract class Entity extends Location implements Metadatable {
                     totem = true;
                 }
                 if (totem) {
-                    this.getLevel().addLevelEvent(this, LevelEventPacket.EVENT_SOUND_TOTEM);
-                    this.getLevel().addParticleEffect(this, ParticleEffect.TOTEM);
+                    PlayerConsumeTotemEvent playerConsumeTotemEvent = new PlayerConsumeTotemEvent(p);
+                    Server.getInstance().getPluginManager().callEvent(playerConsumeTotemEvent);
 
-                    this.extinguish();
-                    this.removeAllEffects();
-                    this.setHealth(1);
+                    if(!playerConsumeTotemEvent.isCancelled()) {
+                        this.getLevel().addLevelEvent(this, LevelEventPacket.EVENT_SOUND_TOTEM);
+                        this.getLevel().addParticleEffect(this, ParticleEffect.TOTEM);
 
-                    this.addEffect(Effect.getEffect(Effect.REGENERATION).setDuration(800).setAmplifier(1));
-                    this.addEffect(Effect.getEffect(Effect.FIRE_RESISTANCE).setDuration(800));
-                    this.addEffect(Effect.getEffect(Effect.ABSORPTION).setDuration(100).setAmplifier(1));
+                        this.extinguish();
+                        this.removeAllEffects();
+                        this.setHealth(1);
 
-                    EntityEventPacket pk = new EntityEventPacket();
-                    pk.eid = this.getId();
-                    pk.event = EntityEventPacket.CONSUME_TOTEM;
-                    p.dataPacket(pk);
+                        this.addEffect(Effect.getEffect(Effect.REGENERATION).setDuration(800).setAmplifier(1));
+                        this.addEffect(Effect.getEffect(Effect.FIRE_RESISTANCE).setDuration(800));
+                        this.addEffect(Effect.getEffect(Effect.ABSORPTION).setDuration(100).setAmplifier(1));
 
-                    source.setCancelled(true);
-                    return false;
+                        EntityEventPacket pk = new EntityEventPacket();
+                        pk.eid = this.getId();
+                        pk.event = EntityEventPacket.CONSUME_TOTEM;
+                        p.dataPacket(pk);
+
+                        source.setCancelled(true);
+                        return false;
+                    }
                 }
             }
         }
