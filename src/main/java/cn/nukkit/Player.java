@@ -16,6 +16,7 @@ import cn.nukkit.entity.item.EntityItem;
 import cn.nukkit.entity.item.EntityXPOrb;
 import cn.nukkit.entity.mob.EntityEnderman;
 import cn.nukkit.entity.mob.EntityWalkingMob;
+import cn.nukkit.entity.mob.EntityWolf;
 import cn.nukkit.entity.projectile.EntityArrow;
 import cn.nukkit.entity.projectile.EntityThrownTrident;
 import cn.nukkit.event.block.ItemFrameDropItemEvent;
@@ -190,8 +191,17 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     protected String iusername;
     protected String displayName;
 
+    /**
+     * Client protocol version
+     */
     public int protocol = 999;
+    /**
+     * Client RakNet protocol version
+     */
     public int raknetProtocol;
+    /**
+     * Client version string
+     */
     protected String version;
 
     protected int startAction = -1;
@@ -283,7 +293,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public int ticksSinceLastRest;
     private boolean inSoulSand;
     private float soulSpeed = 1;
+
     @Getter @Setter protected boolean canDamage = true;
+
     /**
      * Packets that can be received before the player has logged in
      */
@@ -731,7 +743,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     /**
      * Returns whether the player is currently using an item (right-click and hold).
      *
-     * @return bool
+     * @return whether the player is currently using an item
      */
     public boolean isUsingItem() {
         return this.getDataFlag(DATA_FLAGS, DATA_FLAG_ACTION) && this.startAction > -1;
@@ -1429,18 +1441,34 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.adventureSettings.update();
     }
 
+    /**
+     * Check player game mode
+     * @return whether player is in survival mode
+     */
     public boolean isSurvival() {
         return this.gamemode == SURVIVAL;
     }
 
+    /**
+     * Check player game mode
+     * @return whether player is in creative mode
+     */
     public boolean isCreative() {
         return this.gamemode == CREATIVE;
     }
 
+    /**
+     * Check player game mode
+     * @return whether player is in spectator mode
+     */
     public boolean isSpectator() {
         return this.gamemode == SPECTATOR;
     }
 
+    /**
+     * Check player game mode
+     * @return whether player is in adventure mode
+     */
     public boolean isAdventure() {
         return this.gamemode == ADVENTURE;
     }
@@ -1600,12 +1628,15 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         }
     }
 
+    /**
+     * Internal: Check nearby entities and try to pick them up
+     */
     protected void checkNearEntities() {
         Entity[] e = this.level.getNearbyEntities(this.boundingBox.grow(1, 0.5, 1), this);
         for (Entity entity : e) {
             //entity.scheduleUpdate();
 
-            if (!entity.isAlive() || !this.isAlive()) {
+            if (!entity.isAlive()) {
                 continue;
             }
 
@@ -1613,6 +1644,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         }
     }
 
+    /**
+     * Internal: Process player movement
+     *
+     * @param tickDiff tick diff
+     */
     protected void processMovement(int tickDiff) {
         if (!this.isAlive() || !this.spawned || this.newPosition == null || this.teleportPosition != null || this.isSleeping()) {
             return;
@@ -1806,12 +1842,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 int down = this.getLevel().getBlockIdAt(getFloorX(), getFloorY() - 1, getFloorZ());
                 if (this.inSoulSand && down != BlockID.SOUL_SAND) {
                     this.inSoulSand = false;
-                    this.soulSpeed = 1;
                     this.setMovementSpeed(DEFAULT_SPEED, true);
                 } else if (!this.inSoulSand && down == BlockID.SOUL_SAND) {
                     this.inSoulSand = true;
-                    this.soulSpeed = (soulSpeedEnchantment.getLevel() * 0.105f) + 1.3f;
-                    this.setMovementSpeed(DEFAULT_SPEED * this.soulSpeed, true);
+                    float soulSpeed = (soulSpeedEnchantment.getLevel() * 0.105f) + 1.3f;
+                    this.setMovementSpeed(DEFAULT_SPEED * soulSpeed, true);
                 }
             }
         }
@@ -1916,11 +1951,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             this.processMovement(tickDiff);
             this.motionX = this.motionY = this.motionZ = 0; // HACK: fix player knockback being messed up
 
-            //if (currentTick % 2 == 0) {
-                if (!this.isSpectator()) {
-                    this.checkNearEntities();
-                }
-            //}
+            if (!this.isSpectator() && this.isAlive()) {
+                this.checkNearEntities();
+            }
 
             this.entityBaseTick(tickDiff);
 
@@ -2441,7 +2474,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         break;
                     }
 
-                    if (this.protocol < getServer().getPropertyInt("multiversion-min-protocol")) {
+                    if (this.protocol < server.minimumProtocol) {
                         this.close("", "Multiversion support for this Minecraft version is disabled");
                         this.server.getLogger().debug(this.username + " disconnected with protocol " + this.protocol);
                         break;
@@ -4507,6 +4540,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
             if (this.getKiller() != null && this.getKiller() instanceof EntityWalkingMob && ((EntityWalkingMob) this.getKiller()).isAngryTo == this.getId()) {
                 ((EntityWalkingMob) this.getKiller()).isAngryTo = -1; // Reset golem target
+                if (this.getKiller() instanceof EntityWolf) {
+                    ((EntityWolf) this.getKiller()).setAngry(false);
+                }
             }
 
             if (!ev.getKeepInventory() && this.level.getGameRules().getBoolean(GameRule.DO_ENTITY_DROPS)) {
@@ -5703,7 +5739,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         itemsWithMending.add(inventory.getSize() + i);
                     }
                 }
-                if (inventory.getItemInHand().getEnchantment((short)Enchantment.ID_MENDING) != null) {
+                if (inventory.getItemInHandFast().getEnchantment((short)Enchantment.ID_MENDING) != null) {
                     itemsWithMending.add(inventory.getHeldItemIndex());
                 }
                 if (!itemsWithMending.isEmpty()) {

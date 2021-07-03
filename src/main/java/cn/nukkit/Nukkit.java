@@ -41,8 +41,17 @@ public class Nukkit {
     public final static String PATH = System.getProperty("user.dir") + '/';
     public final static String DATA_PATH = System.getProperty("user.dir") + '/';
     public final static String PLUGIN_PATH = DATA_PATH + "plugins";
+    /**
+     * Server start time
+     */
     public final static long START_TIME = System.currentTimeMillis();
+    /**
+     * Console title enabled
+     */
     public static boolean TITLE = true;
+    /**
+     * Debug logging level
+     */
     public static int DEBUG = 1;
 
     public static void main(String[] args) {
@@ -104,12 +113,14 @@ public class Nukkit {
     private static Properties getGitInfo() {
         InputStream gitFileStream = Nukkit.class.getClassLoader().getResourceAsStream("git.properties");
         if (gitFileStream == null) {
+            log.debug("Unable to find git.properties");
             return null;
         }
         Properties properties = new Properties();
         try {
             properties.load(gitFileStream);
         } catch (IOException e) {
+            log.debug("Unable to load git.properties", e);
             return null;
         }
         return properties;

@@ -234,7 +234,7 @@ public class Level implements ChunkManager, Metadatable {
                 generator.init(new PopChunkManager(getSeed()), rand);
                 return generator;
             } catch (Throwable e) {
-                e.printStackTrace();
+                Server.getInstance().getLogger().logException(e);
                 return null;
             }
         }
@@ -321,7 +321,7 @@ public class Level implements ChunkManager, Metadatable {
 
     public static long blockHash(int x, int y, int z) {
         if (y < 0 || y >= 256) {
-            throw new IllegalArgumentException("Y coordinate y is out of range!");
+            throw new IllegalArgumentException("Y coordinate " + y + " is out of range!");
         }
         return (((long) x & (long) 0xFFFFFFF) << 36) | (((long) y & (long) 0xFF) << 28) | ((long) z & (long) 0xFFFFFFF);
     }
@@ -599,9 +599,9 @@ public class Level implements ChunkManager, Metadatable {
     public void addParticle(Particle particle, Player[] players, int count) {
         Int2ObjectMap<ObjectList<Player>> targets;
         if (players == null) {
-            targets = Server.shortPlayers(this.getChunkPlayers(particle.getChunkX(), particle.getChunkZ()).values());
+            targets = Server.sortPlayers(this.getChunkPlayers(particle.getChunkX(), particle.getChunkZ()).values());
         } else {
-            targets = Server.shortPlayers(players);
+            targets = Server.sortPlayers(players);
         }
 
         for (int protocolId : targets.keySet()) {
@@ -1091,7 +1091,7 @@ public class Level implements ChunkManager, Metadatable {
             chunks = new LongOpenHashSet();
         }
 
-        Int2ObjectMap<ObjectList<Player>> targets = Server.shortPlayers(target);
+        Int2ObjectMap<ObjectList<Player>> targets = Server.sortPlayers(target);
         for (Vector3 b : blocks) {
             if (b == null) {
                 continue;
@@ -2422,7 +2422,7 @@ public class Level implements ChunkManager, Metadatable {
 
 
         if (playSound) {
-            Int2ObjectMap<ObjectList<Player>> players = Server.shortPlayers(this.getChunkPlayers(hand.getChunkX(), hand.getChunkZ()).values());
+            Int2ObjectMap<ObjectList<Player>> players = Server.sortPlayers(this.getChunkPlayers(hand.getChunkX(), hand.getChunkZ()).values());
             for (int protocolId : players.keySet()) {
                 ObjectList<Player> targets = players.get(protocolId);
                 int soundData = GlobalBlockPalette.getOrCreateRuntimeId(protocolId > ProtocolInfo.v1_2_10 ? protocolId : ProtocolInfo.CURRENT_PROTOCOL, // no block palette in <= 1.2.10
@@ -4260,9 +4260,7 @@ public class Level implements ChunkManager, Metadatable {
             return ProtocolInfo.v1_16_210;
         } else if (protocol >= ProtocolInfo.v1_16_100) {
             return ProtocolInfo.v1_16_100;
-        } else if (protocol >= ProtocolInfo.v1_16_20 && protocol <= ProtocolInfo.v1_16_100_52) {
-            return ProtocolInfo.v1_16_20;
-        } else if (protocol == ProtocolInfo.v1_16_0) {
+        } else if (protocol >= ProtocolInfo.v1_16_0 && protocol <= ProtocolInfo.v1_16_100_52) {
             return ProtocolInfo.v1_16_0;
         } else if (protocol == ProtocolInfo.v1_14_0 || protocol == ProtocolInfo.v1_14_60) {
             return ProtocolInfo.v1_14_0;
@@ -4282,9 +4280,8 @@ public class Level implements ChunkManager, Metadatable {
         if (chunk == ProtocolInfo.v1_13_0) if (player == ProtocolInfo.v1_13_0) return true;
         if (chunk == ProtocolInfo.v1_14_0)
             if (player == ProtocolInfo.v1_14_0 || player == ProtocolInfo.v1_14_60) return true;
-        if (chunk == ProtocolInfo.v1_16_0) if (player == ProtocolInfo.v1_16_0) return true;
-        if (chunk == ProtocolInfo.v1_16_20)
-            if (player >= ProtocolInfo.v1_16_20) if (player <= ProtocolInfo.v1_16_100_52) return true;
+        if (chunk == ProtocolInfo.v1_16_0)
+            if (player >= ProtocolInfo.v1_16_0) if (player <= ProtocolInfo.v1_16_100_52) return true;
         if (chunk == ProtocolInfo.v1_16_100)
             if (player >= ProtocolInfo.v1_16_100) if (player < ProtocolInfo.v1_16_210) return true;
         if (chunk == ProtocolInfo.v1_16_210)
