@@ -2584,6 +2584,11 @@ public class Level implements ChunkManager, Metadatable {
         return this.getChunk(x >> 4, z >> 4, true).getBlockId(x & 0x0f, y & 0xff, z & 0x0f);
     }
 
+    public int getBlockIdAt(FullChunk chunk, int x, int y, int z) {
+        if (chunk == null) chunk = this.getChunk(x >> 4, z >> 4, true);
+        return chunk.getBlockId(x & 0x0f, y & 0xff, z & 0x0f);
+    }
+
     @Override
     public synchronized void setBlockIdAt(int x, int y, int z, int id) {
         this.getChunk(x >> 4, z >> 4, true).setBlockId(x & 0x0f, y & 0xff, z & 0x0f, id & 0xff);
@@ -3398,15 +3403,7 @@ public class Level implements ChunkManager, Metadatable {
             spawn = this.getSpawnLocation();
         }
 
-        // Hack: Fix the y1 glitch, do not teleport players standing at y=1 to spawn on join
-        // For some reason player's y coord is 0.999 instead of 1 when they join
-        // This may need a better fix later
-        //if (spawn.y < 1) {
-        //    spawn.y = 1.01;
-        //}
-
-        spawn.y = spawn.y + 0.1;
-        Vector3 pos = spawn.floor();
+        Vector3 pos = new Vector3(spawn.getFloorX(), (int) Math.floor(spawn.y + 0.1), spawn.getFloorZ());
         FullChunk chunk = this.getChunk((int) pos.x >> 4, (int) pos.z >> 4, false);
         int x = (int) pos.x & 0x0f;
         int z = (int) pos.z & 0x0f;
@@ -4254,7 +4251,9 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     private int getChunkProtocol(int protocol) {
-        if (protocol >= ProtocolInfo.v1_17_0) {
+        if (protocol >= ProtocolInfo.v1_17_10) {
+            return ProtocolInfo.v1_17_10;
+        } else if (protocol >= ProtocolInfo.v1_17_0) {
             return ProtocolInfo.v1_17_0;
         } else if (protocol >= ProtocolInfo.v1_16_210) {
             return ProtocolInfo.v1_16_210;
@@ -4286,7 +4285,8 @@ public class Level implements ChunkManager, Metadatable {
             if (player >= ProtocolInfo.v1_16_100) if (player < ProtocolInfo.v1_16_210) return true;
         if (chunk == ProtocolInfo.v1_16_210)
             if (player >= ProtocolInfo.v1_16_210) if (player < ProtocolInfo.v1_17_0) return true;
-        if (chunk == ProtocolInfo.v1_17_0) if (player >= ProtocolInfo.v1_17_0) return true;
+        if (chunk == ProtocolInfo.v1_17_0) if (player == ProtocolInfo.v1_17_0) return true;
+        if (chunk == ProtocolInfo.v1_17_10) if (player >= ProtocolInfo.v1_17_10) return true;
         return false; // Remember to update when block palette changes
     }
 

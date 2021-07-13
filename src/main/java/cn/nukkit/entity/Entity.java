@@ -354,8 +354,8 @@ public abstract class Entity extends Location implements Metadatable {
 
     public final boolean isPlayer;
 
-    private volatile boolean initialized;
-    private volatile boolean initialized2;
+    private volatile boolean init;
+    private volatile boolean initEntity;
 
     public float getHeight() {
         return 0;
@@ -405,13 +405,11 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     protected void initEntity() {
-        if (this.initialized2) {
-            // We've already initialized this entity
-            this.server.getLogger().debug("[initEntity] Entity is already initialized: " + this.getName() + " (" + this.id + ')');
-            return;
+        if (this.initEntity) {
+            throw new RuntimeException("Entity is already initialized: " + this.getName() + " (" + this.id + ')');
         }
 
-        this.initialized2 = true;
+        this.initEntity = true;
 
         if (this.namedTag.contains("ActiveEffects")) {
             ListTag<CompoundTag> effects = this.namedTag.getList("ActiveEffects", CompoundTag.class);
@@ -452,13 +450,11 @@ public abstract class Entity extends Location implements Metadatable {
             throw new ChunkException("Invalid garbage Chunk given to Entity");
         }
 
-        if (this.initialized) {
-            // We've already initialized this entity
-            this.server.getLogger().debug("[init] Entity is already initialized: " + this.getName() + " (" + this.id + ')');
-            return;
+        if (this.init) {
+            throw new RuntimeException("Entity is already initialized: " + this.getName() + " (" + this.id + ')');
         }
 
-        this.initialized = true;
+        this.init = true;
 
         this.timing = Timings.getEntityTiming(this);
 
@@ -1893,7 +1889,7 @@ public abstract class Entity extends Location implements Metadatable {
         }
 
         return false;*/
-        int bid = level.getBlockIdAt(this.getFloorX(), this.getFloorY(), this.getFloorZ());
+        int bid = level.getBlockIdAt(chunk, this.getFloorX(), this.getFloorY(), this.getFloorZ());
         return bid == BlockID.WATER || bid == BlockID.STILL_WATER;
     }
 
@@ -2585,7 +2581,7 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public boolean isOnLadder() {
-        int b = this.level.getBlockIdAt(this.getFloorX(), this.getFloorY(), this.getFloorZ());
+        int b = this.level.getBlockIdAt(chunk, this.getFloorX(), this.getFloorY(), this.getFloorZ());
         return b == Block.LADDER || b == Block.VINES || b == Block.COBWEB;
     }
 
