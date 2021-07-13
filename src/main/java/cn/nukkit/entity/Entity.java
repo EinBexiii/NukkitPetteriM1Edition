@@ -1145,16 +1145,25 @@ public abstract class Entity extends Location implements Metadatable {
             if (source.getCause() != DamageCause.VOID && source.getCause() != DamageCause.SUICIDE) {
                 Player p = (Player) this;
                 boolean totem = false;
+
+                PlayerConsumeTotemEvent playerConsumeTotemEvent = new PlayerConsumeTotemEvent(p);
+
                 if (p.getOffhandInventory().getItemFast(0).getId() == ItemID.TOTEM) {
-                    p.getOffhandInventory().clear(0);
+                    Server.getInstance().getPluginManager().callEvent(playerConsumeTotemEvent);
+                    if(!playerConsumeTotemEvent.isCancelled()) {
+                        p.getOffhandInventory().clear(0);
+                    }
+
                     totem = true;
                 } else if (p.getInventory().getItemInHandFast().getId() == ItemID.TOTEM) {
-                    p.getInventory().clear(p.getInventory().getHeldItemIndex());
+                    Server.getInstance().getPluginManager().callEvent(playerConsumeTotemEvent);
+
+                    if(!playerConsumeTotemEvent.isCancelled()) {
+                        p.getInventory().clear(p.getInventory().getHeldItemIndex());
+                    }
                     totem = true;
                 }
                 if (totem) {
-                    PlayerConsumeTotemEvent playerConsumeTotemEvent = new PlayerConsumeTotemEvent(p);
-                    Server.getInstance().getPluginManager().callEvent(playerConsumeTotemEvent);
 
                     if(!playerConsumeTotemEvent.isCancelled()) {
                         this.getLevel().addLevelEvent(this, LevelEventPacket.EVENT_SOUND_TOTEM);

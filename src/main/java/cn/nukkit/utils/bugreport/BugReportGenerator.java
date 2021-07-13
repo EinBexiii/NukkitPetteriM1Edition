@@ -56,7 +56,7 @@ public class BugReportGenerator extends Thread {
     private void sentry() {
         Server.getInstance().getLogger().info("[BugReport] Sending a bug report ...");
 
-        Server.getInstance().sentry.getContext().clear();
+      //  Server.getInstance().sentry.getContext().clear();
 
         if (throwable != null) {
             boolean pluginError = false;
@@ -70,7 +70,7 @@ public class BugReportGenerator extends Thread {
                     }
                 }
             }
-            Server.getInstance().sentry.getContext().addTag("plugin_error", String.valueOf(pluginError));
+          //  Server.getInstance().sentry.getContext().addTag("plugin_error", String.valueOf(pluginError));
         }
 
         StringBuilder plugins = new StringBuilder();
@@ -87,6 +87,7 @@ public class BugReportGenerator extends Thread {
         } catch (Exception ex) {
             Server.getInstance().getLogger().logException(ex);
         }
+        /**
 
         String cpuType = System.getenv("PROCESSOR_IDENTIFIER");
         OperatingSystemMXBean osMXBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
@@ -116,6 +117,7 @@ public class BugReportGenerator extends Thread {
         } else {
             Server.getInstance().getLogger().error("[BugReport] Sending a bug report failed!");
         }
+         */
     }
 
     public static String getCount(long bytes, boolean si) {
